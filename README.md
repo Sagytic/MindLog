@@ -1,9 +1,4 @@
-- Git convention
-type: Subject
-
-body
-
-footer
+Git convention
 
 feat: 새로운 기능 추가 (a new feature)
 fix: 버그 수정
