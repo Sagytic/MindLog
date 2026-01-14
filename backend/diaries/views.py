@@ -5,20 +5,22 @@ from .ai_utils import analyze_diary # <--- [추가] 방금 만든 함수 임포�
 
 class DiaryViewSet(viewsets.ModelViewSet):
     serializer_class = DiarySerializer
-    permission_classes = [permissions.IsAuthenticated]
+
+    # [기존] 인증된 사용자만 접근 가능
+    permission_classes = [permissions.IsAuthenticated] 
+    
+    # [수정 후] 누구나 들어올 수 있게 변경 (테스트용)
+    # permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
+        # [수정] 로그인 안 한 상태에서는 user 필터링을 못 하니 잠시 주석 처리하거나 변경
+        # return Diary.objects.filter(user=self.request.user, is_deleted=False)
         return Diary.objects.filter(user=self.request.user, is_deleted=False)
-
+    
     def perform_create(self, serializer):
-        # 1. 사용자가 보낸 일기 내용 가져오기
         content = serializer.validated_data.get('content')
-        
-        # 2. OpenAI에게 분석 요청 (API Call)
         ai_result = analyze_diary(content)
         
-        # 3. 결과 받아서 DB에 같이 저장
-        # ABAP: MODIFY zdiary FROM ls_data.
         serializer.save(
             user=self.request.user,
             emotion=ai_result.get('emotion'),

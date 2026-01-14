@@ -16,10 +16,19 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+# [추가] JWT 관련 뷰 임포트
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView, # 로그인 (ID/PW 주면 토큰 줌)
+    TokenRefreshView,    # 토큰 갱신 (만료되면 새거 줌)
+)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    
+    # [추가] 로그인 관련 URL (티켓 발급소)
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
     path('api/diaries/', include('diaries.urls')),
-    path('api/diaries/', include('diaries.urls')),
+
 ]

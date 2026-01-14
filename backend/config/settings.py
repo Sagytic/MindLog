@@ -27,6 +27,10 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+# --- CORS 설정 (모두 허용) ---
+CORS_ALLOW_ALL_ORIGINS = True 
+CORS_ALLOW_CREDENTIALS = True
+
 
 # Application definition
 
@@ -37,15 +41,25 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
+    
+    # [3rd Party]
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
-
+    
+    # [Local]
     'diaries',
 ]
 
+# [추가] DRF가 JWT를 사용하도록 명시
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
+
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -108,16 +122,30 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'ko-kr'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/seoul'
 
 USE_I18N = True
 
-USE_TZ = True
+USE_TZ = False
 
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+# --- JWT 설정 (티켓 유효기간) ---
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    # Access Token (입장권) 수명: 1일
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    
+    # Refresh Token (갱신권) 수명: 7일
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    
+    # 보안상 헤더에 'Bearer <토큰>' 형태로 보냄
+    'AUTH_HEADER_TYPES': ('Bearer',), 
+}
