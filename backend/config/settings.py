@@ -134,8 +134,6 @@ USE_TZ = False
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = 'static/'
-
 # --- JWT 설정 (티켓 유효기간) ---
 from datetime import timedelta
 
@@ -149,3 +147,11 @@ SIMPLE_JWT = {
     # 보안상 헤더에 'Bearer <토큰>' 형태로 보냄
     'AUTH_HEADER_TYPES': ('Bearer',), 
 }
+
+import os
+
+STATIC_URL = 'static/'
+
+# 이미지가 실제로 저장될 폴더 경로 (backend/media 폴더에 저장됨)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

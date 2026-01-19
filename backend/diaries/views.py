@@ -1,23 +1,21 @@
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, permissions, generics
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from django.contrib.auth.models import User  
 from .models import Diary
-from .serializers import DiarySerializer
-from .ai_utils import analyze_diary # <--- [추가] 방금 만든 함수 임포트
+from .serializers import DiarySerializer, UserSerializer
+from .ai_utils import analyze_diary  
 
+# 1. 일기장 기능 (CRUD + AI + Soft Delete)
 class DiaryViewSet(viewsets.ModelViewSet):
     serializer_class = DiarySerializer
-
-    # [기존] 인증된 사용자만 접근 가능
-    permission_classes = [permissions.IsAuthenticated] 
-    
-    # [수정 후] 누구나 들어올 수 있게 변경 (테스트용)
-    # permission_classes = [permissions.AllowAny]
+    permission_classes = [IsAuthenticated] # 로그인한 사람만 사용 가능
 
     def get_queryset(self):
-        # [수정] 로그인 안 한 상태에서는 user 필터링을 못 하니 잠시 주석 처리하거나 변경
-        # return Diary.objects.filter(user=self.request.user, is_deleted=False)
-        return Diary.objects.filter(user=self.request.user, is_deleted=False)
+        # [기존 로직 유지] 내 일기만 + 삭제되지 않은 것만 가져오기
+        return Diary.objects.filter(user=self.request.user, is_deleted=False).order_by('-created_at')
     
     def perform_create(self, serializer):
+        # [기존 로직 유지] AI 감정 분석 후 저장
         content = serializer.validated_data.get('content')
         ai_result = analyze_diary(content)
         
@@ -28,4 +26,11 @@ class DiaryViewSet(viewsets.ModelViewSet):
         )
 
     def perform_destroy(self, instance):
+        # [기존 로직 유지] 진짜 삭제하지 않고 숨김 처리 (Soft Delete)
         instance.soft_delete()
+
+# 2. 회원가입 기능 (새로 추가)
+class RegisterView(generics.CreateAPIView):
+    queryset = User.objects.all()
+    permission_classes = [AllowAny] # 누구나 가입 가능
+    serializer_class = UserSerializer

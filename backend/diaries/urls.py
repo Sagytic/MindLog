@@ -1,11 +1,13 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import DiaryViewSet
+from .views import DiaryViewSet, RegisterView
 
-# ViewSet에 있는 CRUD 기능을 자동으로 URL로 매핑
 router = DefaultRouter()
 router.register(r'', DiaryViewSet, basename='diary')
 
 urlpatterns = [
+    path('register/', RegisterView.as_view(), name='register'),
+
+    # The router should be included last because it will catch all remaining routes.
     path('', include(router.urls)),
 ]

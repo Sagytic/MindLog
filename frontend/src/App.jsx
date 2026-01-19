@@ -1,125 +1,195 @@
+// frontend/src/App.jsx
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import Login from './Login'; // 방금 만든 로그인 화면 임포트
+import Swal from 'sweetalert2'; 
+import Login from './components/Login';       
+import DiaryList from './components/DiaryList'; 
+import Register from './components/Register';
 
 function App() {
+  const [darkMode, setDarkMode] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isRegisterMode, setIsRegisterMode] = useState(false);
+  
   const [content, setContent] = useState("");
-  const [result, setResult] = useState(null);
+  
+  // [추가] 이미지 파일 상태 관리
+  const [image, setImage] = useState(null); 
+  
   const [loading, setLoading] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  // 화면이 처음 켜질 때(Initialization) 실행
+  // 초기 토큰 확인 로직 (기존 유지)
   useEffect(() => {
-    // 1. 브라우저 금고(localStorage)에 '티켓'이 있는지 확인
     const token = localStorage.getItem("accessToken");
     if (token) {
       setIsLoggedIn(true);
-      // [중요] 앞으로 모든 axios 요청에 티켓을 붙여서 보내도록 설정
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     }
   }, []);
 
-  // 로그인이 성공했을 때 실행될 함수
   const handleLoginSuccess = () => {
     const token = localStorage.getItem("accessToken");
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     setIsLoggedIn(true);
   };
 
-  // 로그아웃 함수
   const handleLogout = () => {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
     delete axios.defaults.headers.common['Authorization'];
     setIsLoggedIn(false);
-    setResult(null);
-    setContent("");
   };
 
+  // [수정] 파일 업로드용 handleSubmit (기존 스피너/토스트 로직 100% 유지)
   const handleSubmit = async () => {
-    if (!content) return;
+    if (!content) {
+      // [유지] 빈 내용 경고 Swal
+      Swal.fire({ 
+        icon: 'warning', 
+        title: '내용을 입력해주세요', 
+        text: '오늘의 감정을 기록해볼까요?',
+        confirmButtonColor: '#3085d6' 
+      });
+      return;
+    }
+    
     setLoading(true);
     try {
-      // 이제 헤더에 토큰이 자동으로 붙어서 나갑니다.
-      const response = await axios.post('http://127.0.0.1:8000/api/diaries/', {
-        content: content
-      });
-      setResult(response.data);
-      setContent("");
-    } catch (error) {
-      console.error("에러 발생:", error);
-      // 401 에러(티켓 만료)면 로그아웃 처리
-      if (error.response && error.response.status === 401) {
-        alert("로그인이 만료되었습니다.");
-        handleLogout();
-      } else {
-        alert("일기 저장 실패!");
+      // 1. 택배 상자(FormData) 만들기 (사진 전송 필수 과정)
+      const formData = new FormData();
+      formData.append('content', content);
+      
+      // 이미지가 있을 때만 상자에 담기
+      if (image) {
+        formData.append('image', image); 
       }
+
+      // 2. 서버로 전송
+      await axios.post('http://127.0.0.1:8000/api/diaries/', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      // 3. 초기화 및 갱신
+      setContent("");
+      setImage(null); // 전송 후 이미지 초기화
+      setRefreshKey(prev => prev + 1); 
+      
+      // [유지] 성공 토스트 알림
+      const Toast = Swal.mixin({
+        toast: true, 
+        position: 'top-end', 
+        showConfirmButton: false,
+        timer: 3000, 
+        timerProgressBar: true,
+        didOpen: (toast) => {
+          toast.addEventListener('mouseenter', Swal.stopTimer)
+          toast.addEventListener('mouseleave', Swal.resumeTimer)
+        }
+      });
+      Toast.fire({ 
+        icon: 'success', 
+        title: '일기가 성공적으로 기록되었어요!' 
+      });
+
+    } catch (error) {
+      console.error(error);
+      // [유지] 에러 알림 Swal
+      Swal.fire({ 
+        icon: 'error', 
+        title: '저장 실패', 
+        text: '잠시 후 다시 시도해주세요.' 
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  // --- [화면 분기 로직] ---
-  // 로그인이 안 되어 있으면 -> 로그인 화면 보여줌
-  if (!isLoggedIn) {
-    return <Login onLoginSuccess={handleLoginSuccess} />;
-  }
+  // [추가] 이미지 파일 선택 핸들러
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) setImage(file);
+  };
 
-  // 로그인이 되어 있으면 -> 일기장 화면 보여줌
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-lg relative">
-        
-        {/* 로그아웃 버튼 (우측 상단) */}
-        <button 
-          onClick={handleLogout}
-          className="absolute top-4 right-4 text-sm text-gray-500 hover:text-red-500 underline"
-        >
-          로그아웃
-        </button>
-
-        <h1 className="text-2xl font-bold mb-6 text-center text-gray-800">📖 AI 회고 일기장</h1>
-        
-        <textarea 
-          className="w-full p-4 border rounded-lg h-32 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"
-          placeholder="오늘 무슨 일이 있었나요?"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-        />
-        
-        <button 
-          onClick={handleSubmit}
-          disabled={loading}
-          className="w-full bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 transition disabled:bg-gray-400"
-        >
-          {loading ? "AI가 분석 중입니다..." : "일기 저장하기"}
-        </button>
-
-        {result && (
-          <div className="mt-8 p-6 bg-blue-50 rounded-lg border border-blue-100 animate-fade-in">
-            <h3 className="text-lg font-bold text-gray-700 mb-2">🤖 AI의 분석 결과</h3>
-            <p className="text-sm text-gray-500 mb-4">{new Date(result.created_at).toLocaleString()}</p>
-            
-            <div className="mb-4">
-              <span className="font-semibold text-blue-600">감정 키워드:</span>
-              <div className="mt-1 flex flex-wrap gap-2">
-                {result.emotion && result.emotion.split(',').map((tag, idx) => (
-                  <span key={idx} className="bg-white px-3 py-1 rounded-full text-sm shadow-sm text-gray-600">
-                    #{tag.trim()}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <span className="font-semibold text-blue-600">위로의 한마디:</span>
-              <p className="mt-2 text-gray-700 leading-relaxed whitespace-pre-wrap">
-                {result.advice}
-              </p>
+    <div className={darkMode ? "dark" : ""}>
+      <div className="min-h-screen w-full flex flex-col items-center p-6 transition-colors duration-300 bg-gray-100 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+        <div className="w-full max-w-3xl">
+          {/* 상단바 (기존 유지) */}
+          <div className="flex justify-between items-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-800 dark:text-white">📖 MindLog</h1>
+            <div className="flex items-center gap-4">
+              <button onClick={() => setDarkMode(!darkMode)} className="px-3 py-1 rounded-lg bg-gray-200 dark:bg-gray-700 text-sm hover:bg-gray-300 dark:hover:bg-gray-600 transition">
+                {darkMode ? "🌞" : "🌙"}
+              </button>
+              {isLoggedIn && (
+                <button onClick={handleLogout} className="text-gray-500 dark:text-gray-400 hover:text-red-500 underline text-sm">
+                  로그아웃
+                </button>
+              )}
             </div>
           </div>
-        )}
+
+          {isLoggedIn ? (
+            <>
+              <div className="mb-10 p-6 rounded-xl shadow-md transition-colors duration-300 bg-white dark:bg-gray-800">
+                <textarea 
+                  className="w-full p-4 border rounded-lg h-32 mb-4 resize-none focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-200 dark:border-gray-600"
+                  placeholder="오늘 하루는 어떠셨나요?"
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                />
+                
+                {/* [추가] 이미지 파일 입력창 */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    📸 사진 추가하기
+                  </label>
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="block w-full text-sm text-gray-500 dark:text-gray-400
+                      file:mr-4 file:py-2 file:px-4
+                      file:rounded-full file:border-0
+                      file:text-sm file:font-semibold
+                      file:bg-blue-50 file:text-blue-700
+                      hover:file:bg-blue-100 dark:file:bg-gray-700 dark:file:text-gray-200"
+                  />
+                </div>
+
+                {/* [유지] 스피너가 적용된 작성 버튼 */}
+                <button 
+                  onClick={handleSubmit}
+                  disabled={loading}
+                  className="w-full bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 transition disabled:bg-blue-300 font-bold flex justify-center items-center gap-2"
+                >
+                  {loading ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>업로드 중...</span>
+                    </>
+                  ) : "오늘 기록 남기기"}
+                </button>
+              </div>
+              <DiaryList refreshTrigger={refreshKey} />
+            </>
+          ) : isRegisterMode ? (
+            <Register onRegisterSuccess={() => setIsRegisterMode(false)} onSwitchToLogin={() => setIsRegisterMode(false)} />
+          ) : (
+            <div>
+              <Login onLoginSuccess={handleLoginSuccess} />
+              <div className="mt-4 text-center">
+                <button onClick={() => setIsRegisterMode(true)} className="text-sm text-gray-500 dark:text-gray-400 hover:underline">
+                  계정이 없으신가요? 회원가입
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
