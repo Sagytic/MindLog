@@ -155,3 +155,13 @@ STATIC_URL = 'static/'
 # 이미지가 실제로 저장될 폴더 경로 (backend/media 폴더에 저장됨)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),  # 입장권: 1시간
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),     # 재발급권: 7일 (이 기간 안에는 자동 로그인 됨)
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': False,
+}
