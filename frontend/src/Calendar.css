@@ -1,0 +1,106 @@
+/* 달력 전체 컨테이너 */
+.react-calendar {
+  width: 100%;
+  max-width: 100%;
+  background: transparent;
+  font-family: inherit;
+  line-height: 1.125em;
+  border: none;
+}
+
+/* 네비게이션 (2025년 5월 < >) */
+.react-calendar__navigation {
+  display: flex;
+  height: 44px;
+  margin-bottom: 1rem;
+}
+
+.react-calendar__navigation button {
+  min-width: 44px;
+  background: none;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 8px;
+  transition: 0.2s;
+}
+
+/* 라이트 모드 버튼 색상 */
+.react-calendar__navigation button:enabled:hover,
+.react-calendar__navigation button:enabled:focus {
+  background-color: #f3f4f6;
+}
+
+/* 요일 (월 화 수 ...) */
+.react-calendar__month-view__weekdays {
+  text-align: center;
+  text-transform: uppercase;
+  font-weight: bold;
+  font-size: 0.85em;
+  opacity: 0.6;
+  text-decoration: none; /* 밑줄 제거 */
+}
+
+/* 밑줄 제거 강제 적용 */
+abbr[title] {
+  text-decoration: none;
+  cursor: default;
+}
+
+/* 날짜 타일 */
+.react-calendar__tile {
+  max-width: 100%;
+  padding: 10px 6.6667px;
+  background: none;
+  text-align: center;
+  line-height: 16px;
+  font-size: 14px;
+  border-radius: 12px;
+  transition: 0.2s;
+  height: 90px; /* 높이를 키워서 이모지 공간 확보 */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 5px;
+}
+
+.react-calendar__tile:enabled:hover,
+.react-calendar__tile:enabled:focus {
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+
+/* 오늘 날짜 */
+.react-calendar__tile--now {
+  background: #fffbeb;
+  font-weight: bold;
+  color: #d97706;
+}
+
+/* 선택된 날짜 */
+.react-calendar__tile--active {
+  background: #2563eb !important;
+  color: white !important;
+}
+
+/* --- 다크 모드 대응 --- */
+.dark .react-calendar__navigation button {
+  color: white;
+}
+.dark .react-calendar__navigation button:enabled:hover,
+.dark .react-calendar__navigation button:enabled:focus {
+  background-color: #374151;
+}
+.dark .react-calendar__tile:enabled:hover,
+.dark .react-calendar__tile:enabled:focus {
+  background-color: #1f2937;
+  color: #60a5fa;
+}
+.dark .react-calendar__tile--now {
+  background: #374151;
+  color: #fbbf24;
+}
+.dark .react-calendar__tile--active {
+  background: #3b82f6 !important;
+  color: white !important;
+}

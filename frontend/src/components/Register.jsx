@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import axios from 'axios';
+// import axios from 'axios';
+import api from '../api'; // 수정된 api 인스턴스 사용
 import Swal from 'sweetalert2'; // [추가] 예쁜 팝업 라이브러리
 
 const Register = ({ onRegisterSuccess, onSwitchToLogin }) => {
@@ -22,7 +23,7 @@ const Register = ({ onRegisterSuccess, onSwitchToLogin }) => {
     }
 
     try {
-      await axios.post("http://127.0.0.1:8000/api/diaries/register/", {
+      await api.post("/api/diaries/register/", {
         username,
         password,
       });
