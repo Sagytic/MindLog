@@ -3,7 +3,7 @@ import Swal from 'sweetalert2';
 
 // 1. Axios 인스턴스 생성 (기본 설정)
 const api = axios.create({
-  baseURL: 'http://127.0.0.1:8000', // 백엔드 주소
+  baseURL: 'http://15.165.235.130', // 백엔드 주소
   headers: {
     'Content-Type': 'application/json',
   },
