@@ -151,6 +151,7 @@ SIMPLE_JWT = {
 import os
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # 이미지가 실제로 저장될 폴더 경로 (backend/media 폴더에 저장됨)
 MEDIA_URL = '/media/'
