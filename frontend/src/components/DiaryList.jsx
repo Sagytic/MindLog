@@ -1,9 +1,9 @@
 // frontend/src/components/DiaryList.jsx
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import api from '../api'; 
 import Swal from 'sweetalert2'; 
-import { FaTrashAlt, FaTimes, FaEdit, FaSave, FaSearch } from 'react-icons/fa'; 
+import { FaTimes, FaEdit, FaSave, FaSearch } from 'react-icons/fa';
 import Calendar from 'react-calendar'; 
 import 'react-calendar/dist/Calendar.css'; 
 import '../Calendar.css'; 
@@ -12,6 +12,7 @@ import { useInView } from 'react-intersection-observer';
 
 // ★ [추가] 분리한 작성 폼 컴포넌트 불러오기
 import DiaryForm from './DiaryForm'; 
+import DiaryItem from './DiaryItem';
 
 const DiaryList = ({ activeTab }) => {
   const [diaries, setDiaries] = useState([]);
@@ -148,8 +149,8 @@ const DiaryList = ({ activeTab }) => {
     }
   };
 
-  // --- 검색 필터링 ---
-  const getFilteredDiaries = () => {
+  // --- 검색 필터링 (Memoization) ---
+  const filteredDiaries = useMemo(() => {
     if (!searchTerm) return diaries;
     const lowerTerm = searchTerm.toLowerCase();
     return diaries.filter(diary => 
@@ -157,11 +158,10 @@ const DiaryList = ({ activeTab }) => {
       (diary.emotion && diary.emotion.includes(lowerTerm)) || 
       new Date(diary.created_at).toLocaleDateString().includes(lowerTerm) 
     );
-  };
-  const filteredDiaries = getFilteredDiaries();
+  }, [diaries, searchTerm]);
 
-  // --- 차트 데이터 가공 (AI 분석 통계용) ---
-  const getChartData = () => {
+  // --- 차트 데이터 가공 (AI 분석 통계용 - Memoization) ---
+  const chartInfo = useMemo(() => {
     const today = new Date();
     const oneMonthAgo = new Date();
     oneMonthAgo.setDate(today.getDate() - 30); 
@@ -183,19 +183,18 @@ const DiaryList = ({ activeTab }) => {
       data: Object.keys(emotionCount).map((key) => ({ name: key, value: emotionCount[key] })),
       total: recentCount
     };
-  };
-  const chartInfo = getChartData();
+  }, [diaries]);
 
   // --- 기타 핸들러 ---
-  const openModal = (diary, startEditing = false) => {
+  const openModal = useCallback((diary, startEditing = false) => {
     setSelectedDiary(diary);
     setIsEditing(startEditing);
     setEditContent(diary.content);
     setEditImage(null);
     setUpdating(false);
-  };
+  }, []);
 
-  const handleDelete = (e, id) => {
+  const handleDelete = useCallback((e, id) => {
     e.stopPropagation(); 
     Swal.fire({
       title: '삭제하시겠습니까?', text: "되돌릴 수 없습니다.", icon: 'warning',
@@ -206,14 +205,14 @@ const DiaryList = ({ activeTab }) => {
         try {
           await api.delete(`/api/diaries/${id}/`);
           setDiaries(prev => prev.filter(diary => diary.id !== id));
-          if (selectedDiary && selectedDiary.id === id) setSelectedDiary(null);
+          setSelectedDiary(prev => (prev && prev.id === id ? null : prev));
           Swal.fire('삭제됨', '', 'success');
         } catch (error) {
           Swal.fire('실패', '오류가 발생했습니다.', 'error');
         }
       }
     });
-  };
+  }, []);
 
   const handleUpdate = async () => {
     if (!editContent) return alert("내용을 입력해주세요.");
@@ -287,36 +286,13 @@ const DiaryList = ({ activeTab }) => {
           ) : (
             <div className="flex flex-col gap-4">
               {filteredDiaries.map((diary, index) => (
-                <div 
-                  key={diary.id} onClick={() => openModal(diary, false)} 
-                  style={{ animationDelay: `${(index % 10) * 0.1}s` }} 
-                  className="group w-full bg-white dark:bg-gray-800 p-5 rounded-xl shadow-md border border-gray-300 dark:border-gray-700 hover:shadow-lg hover:border-blue-400 dark:hover:border-blue-500 transition cursor-pointer animate-slide-up relative flex gap-5 h-40 overflow-hidden"
-                >
-                  <div className="flex-1 min-w-0 flex flex-col justify-between h-full">
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-xs text-gray-400 dark:text-gray-500 font-bold tracking-wider uppercase">
-                          {new Date(diary.created_at).toLocaleDateString()}
-                        </span>
-                        <div className="flex gap-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={(e) => { e.stopPropagation(); openModal(diary, true); }} className="text-gray-400 hover:text-blue-500 p-1"><FaEdit /></button>
-                          <button onClick={(e) => handleDelete(e, diary.id)} className="text-gray-400 hover:text-red-500 p-1"><FaTrashAlt /></button>
-                        </div>
-                      </div>
-                      <p className="text-gray-800 dark:text-gray-200 text-sm leading-relaxed line-clamp-3 font-medium">{diary.content}</p>
-                    </div>
-                    {(diary.advice || diary.emotion) && (
-                      <div className="flex items-center gap-2 mt-2">
-                        {diary.emotion && <span className="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 px-2 py-1 rounded text-xs font-bold border border-blue-100 dark:border-blue-800">{diary.emotion}</span>}
-                      </div>
-                    )}
-                  </div>
-                  {diary.image && (
-                    <div className="w-32 h-32 flex-shrink-0 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden self-center shadow-inner">
-                        <img src={diary.image.startsWith('http') ? diary.image : `http://127.0.0.1:8000${diary.image}`} alt="썸네일" className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
-                    </div>
-                  )}
-                </div>
+                <DiaryItem
+                  key={diary.id}
+                  diary={diary}
+                  openModal={openModal}
+                  onDelete={handleDelete}
+                  style={{ animationDelay: `${(index % 10) * 0.1}s` }}
+                />
               ))}
               
               {/* 무한 스크롤 트리거 요소 */}
