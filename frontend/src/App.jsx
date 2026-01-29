@@ -82,6 +82,7 @@ function App() {
              <button 
                onClick={() => setIsMobileMenuOpen(true)}
                className="text-gray-600 dark:text-gray-200 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+               aria-label="메뉴 열기"
              >
                <HiMenu size={24} />
              </button>
@@ -113,6 +114,7 @@ function App() {
                 <button 
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="md:hidden text-gray-500 hover:text-red-500 transition"
+                  aria-label="메뉴 닫기"
                 >
                   <HiX size={24} />
                 </button>
@@ -128,11 +130,18 @@ function App() {
             <div className="p-6 flex flex-col gap-4 border-t border-gray-100 dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">화면 모드</span>
-                <div onClick={() => setDarkMode(!darkMode)} className={`relative w-14 h-7 rounded-full p-1 cursor-pointer transition-colors duration-500 ease-in-out flex items-center justify-between px-1.5 shadow-inner border border-transparent ${darkMode ? 'bg-indigo-900 border-indigo-700' : 'bg-sky-400 border-sky-300'}`}>
+                <button
+                  type="button"
+                  onClick={() => setDarkMode(!darkMode)}
+                  className={`relative w-14 h-7 rounded-full p-1 cursor-pointer transition-colors duration-500 ease-in-out flex items-center justify-between px-1.5 shadow-inner border border-transparent ${darkMode ? 'bg-indigo-900 border-indigo-700' : 'bg-sky-400 border-sky-300'}`}
+                  aria-label="다크 모드"
+                  role="switch"
+                  aria-checked={darkMode}
+                >
                   <span className="text-xs z-0 select-none">☀️</span>
                   <span className="text-xs z-0 select-none">🌙</span>
                   <div className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow-md transform transition-transform duration-300 ease-in-out z-10 ${darkMode ? 'translate-x-7' : 'translate-x-0'}`}/>
-                </div>
+                </button>
               </div>
               <button onClick={handleLogout} className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition text-sm font-medium">
                 <FaSignOutAlt /> 로그아웃
