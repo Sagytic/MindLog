@@ -1,17 +1,17 @@
 // frontend/src/components/DiaryList.jsx
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useMemo, lazy, Suspense } from 'react';
 import api from '../api'; 
 import Swal from 'sweetalert2'; 
 import { FaTrashAlt, FaTimes, FaEdit, FaSave, FaSearch } from 'react-icons/fa'; 
-import Calendar from 'react-calendar'; 
-import 'react-calendar/dist/Calendar.css'; 
-import '../Calendar.css'; 
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useInView } from 'react-intersection-observer';
 
 // ★ [추가] 분리한 작성 폼 컴포넌트 불러오기
 import DiaryForm from './DiaryForm'; 
+
+// Lazy load components
+const DiaryCalendar = lazy(() => import('./DiaryCalendar'));
+const DiaryStats = lazy(() => import('./DiaryStats'));
 
 const DiaryList = ({ activeTab }) => {
   const [diaries, setDiaries] = useState([]);
@@ -29,52 +29,6 @@ const DiaryList = ({ activeTab }) => {
   const [editImage, setEditImage] = useState(null);
   const [updating, setUpdating] = useState(false);
 
-  const COLORS = ['#60A5FA', '#F87171', '#FBBF24', '#34D399', '#A78BFA', '#9CA3AF'];
-
-  // [1] 데이터 불러오기 함수
-  const fetchDiaries = useCallback(async (reset = false) => {
-    if (loading) return; 
-    
-    setLoading(true);
-    try {
-      if (activeTab === 'home') {
-        const currentPage = reset ? 1 : page; 
-        
-        // 검색어가 있으면 전체 로드 (임시)
-        let url = `/api/diaries/?page=${currentPage}`;
-        if (searchTerm) url = `/api/diaries/?all=true`; 
-
-        const response = await api.get(url);
-        
-        if (searchTerm) {
-              setDiaries(response.data); 
-              setHasMore(false);
-        } else {
-            const newData = response.data.results ? response.data.results : response.data;
-            const isLastPage = !response.data.next; 
-
-            if (reset) {
-                setDiaries(newData);
-            } else {
-                setDiaries(prev => [...prev, ...newData]); 
-            }
-
-            setHasMore(!isLastPage); 
-            if (!isLastPage) setPage(prev => prev + 1); 
-        }
-
-      } else {
-        // 캘린더/통계: 전체 데이터 로드
-        const response = await api.get('/api/diaries/?all=true');
-        setDiaries(response.data); 
-      }
-    } catch (error) {
-      console.error("데이터 로드 실패:", error);
-      setHasMore(false); 
-    } finally {
-      setLoading(false);
-    }
-  }, [activeTab, page, searchTerm]); 
 
   // [2] 초기화 및 리셋 로직
   useEffect(() => {
@@ -117,7 +71,7 @@ const DiaryList = ({ activeTab }) => {
                 setDiaries(prev => [...prev, ...newData]);
                 setHasMore(!!response.data.next);
                 if (response.data.next) setPage(prev => prev + 1);
-            } catch (e) { setHasMore(false); }
+            } catch { setHasMore(false); }
             finally { setLoading(false); }
         };
         loadMore();
@@ -149,7 +103,7 @@ const DiaryList = ({ activeTab }) => {
   };
 
   // --- 검색 필터링 ---
-  const getFilteredDiaries = () => {
+  const filteredDiaries = useMemo(() => {
     if (!searchTerm) return diaries;
     const lowerTerm = searchTerm.toLowerCase();
     return diaries.filter(diary => 
@@ -157,34 +111,7 @@ const DiaryList = ({ activeTab }) => {
       (diary.emotion && diary.emotion.includes(lowerTerm)) || 
       new Date(diary.created_at).toLocaleDateString().includes(lowerTerm) 
     );
-  };
-  const filteredDiaries = getFilteredDiaries();
-
-  // --- 차트 데이터 가공 (AI 분석 통계용) ---
-  const getChartData = () => {
-    const today = new Date();
-    const oneMonthAgo = new Date();
-    oneMonthAgo.setDate(today.getDate() - 30); 
-
-    const emotionCount = {};
-    let recentCount = 0; 
-
-    diaries.forEach(diary => {
-      const diaryDate = new Date(diary.created_at);
-      if (diaryDate >= oneMonthAgo) {
-        const emotion = diary.emotion ? diary.emotion.trim() : "기타";
-        if (emotionCount[emotion]) emotionCount[emotion] += 1;
-        else emotionCount[emotion] = 1;
-        recentCount++;
-      }
-    });
-
-    return {
-      data: Object.keys(emotionCount).map((key) => ({ name: key, value: emotionCount[key] })),
-      total: recentCount
-    };
-  };
-  const chartInfo = getChartData();
+  }, [diaries, searchTerm]);
 
   // --- 기타 핸들러 ---
   const openModal = (diary, startEditing = false) => {
@@ -208,7 +135,7 @@ const DiaryList = ({ activeTab }) => {
           setDiaries(prev => prev.filter(diary => diary.id !== id));
           if (selectedDiary && selectedDiary.id === id) setSelectedDiary(null);
           Swal.fire('삭제됨', '', 'success');
-        } catch (error) {
+        } catch {
           Swal.fire('실패', '오류가 발생했습니다.', 'error');
         }
       }
@@ -231,27 +158,10 @@ const DiaryList = ({ activeTab }) => {
       setSelectedDiary(updatedDiary);
       setIsEditing(false);
       Swal.fire({ icon: 'success', title: '수정 완료!', toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
-    } catch (error) {
+    } catch {
       Swal.fire('수정 실패', '잠시 후 다시 시도해주세요.', 'error');
     } finally {
       setUpdating(false);
-    }
-  };
-
-  const getEmotionEmoji = (emotion) => {
-    if (!emotion) return "📅"; 
-    if (emotion.includes("행복") || emotion.includes("기쁨")) return "🥰";
-    if (emotion.includes("슬픔") || emotion.includes("우울")) return "😭";
-    if (emotion.includes("화") || emotion.includes("분노")) return "😡";
-    if (emotion.includes("불안") || emotion.includes("걱정")) return "😬";
-    if (emotion.includes("평온") || emotion.includes("보통")) return "🙂";
-    return "📝"; 
-  };
-
-  const tileContent = ({ date, view }) => {
-    if (view === 'month') {
-      const diary = diaries.find(d => new Date(d.created_at).toDateString() === date.toDateString());
-      if (diary) return <div className="flex flex-col items-center mt-1"><span className="text-xl">{getEmotionEmoji(diary.emotion)}</span></div>;
     }
   };
 
@@ -332,48 +242,19 @@ const DiaryList = ({ activeTab }) => {
 
       {/* 2. 캘린더 */}
       {activeTab === 'calendar' && (
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 animate-fade-in">
-           <Calendar className="w-full" locale="ko-KR" tileContent={tileContent}
-             onClickDay={(date) => {
-               const diary = diaries.find(d => new Date(d.created_at).toDateString() === date.toDateString());
-               if (diary) openModal(diary, false);
-             }}
-           />
-        </div>
+        <Suspense fallback={<div className="p-10 text-center text-gray-500">캘린더 로딩중...</div>}>
+          <DiaryCalendar
+            diaries={diaries}
+            onDiaryClick={(diary) => openModal(diary, false)}
+          />
+        </Suspense>
       )}
 
       {/* 3. 통계 (AI 분석 기능 포함) */}
       {activeTab === 'stats' && (
-        <div className="animate-fade-in">
-            {chartInfo.total > 0 ? (
-                <div className="grid grid-cols-1 gap-6">
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center min-h-[400px]">
-                        <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-6">최근 30일 감정 분포</h3>
-                        <ResponsiveContainer width="100%" height={300}>
-                            <PieChart>
-                                <Pie data={chartInfo.data} cx="50%" cy="50%" innerRadius={60} outerRadius={100} fill="#8884d8" paddingAngle={5} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                                    {chartInfo.data.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
-                                </Pie>
-                                <Tooltip />
-                                <Legend verticalAlign="bottom" height={36}/>
-                            </PieChart>
-                        </ResponsiveContainer>
-                    </div>
-                    {/* ★ AI 분석 요약 섹션 */}
-                    <div className="bg-blue-50 dark:bg-indigo-900/30 p-6 rounded-2xl border border-blue-100 dark:border-indigo-800">
-                        <h4 className="text-lg font-bold text-blue-900 dark:text-blue-200 mb-2">💡 AI 분석 요약</h4>
-                        <p className="text-blue-800 dark:text-blue-300">
-                          최근 30일간 작성한 <strong>{chartInfo.total}</strong>개의 기록 중 가장 많이 느낀 감정은 
-                          <strong className="text-xl mx-1">{chartInfo.data.sort((a,b) => b.value - a.value)[0]?.name || "없음"}</strong>입니다.
-                        </p>
-                    </div>
-                </div>
-            ) : (
-                <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-2xl border border-dashed border-gray-300 dark:border-gray-700">
-                    <p className="text-gray-500 dark:text-gray-400">최근 30일간 작성된 데이터가 없습니다.</p>
-                </div>
-            )}
-        </div>
+        <Suspense fallback={<div className="p-10 text-center text-gray-500">통계 로딩중...</div>}>
+          <DiaryStats diaries={diaries} />
+        </Suspense>
       )}
 
       {/* 모달 (AI 회고록 포함) */}
