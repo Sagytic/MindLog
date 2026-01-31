@@ -1,6 +1,6 @@
 // frontend/src/components/DiaryList.jsx
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import api from '../api'; 
 import Swal from 'sweetalert2'; 
 import { FaTrashAlt, FaTimes, FaEdit, FaSave, FaSearch } from 'react-icons/fa'; 
@@ -149,7 +149,8 @@ const DiaryList = ({ activeTab }) => {
   };
 
   // --- 검색 필터링 ---
-  const getFilteredDiaries = () => {
+  // ⚡ Bolt: Memoized to prevent re-filtering on every render
+  const filteredDiaries = useMemo(() => {
     if (!searchTerm) return diaries;
     const lowerTerm = searchTerm.toLowerCase();
     return diaries.filter(diary => 
@@ -157,11 +158,11 @@ const DiaryList = ({ activeTab }) => {
       (diary.emotion && diary.emotion.includes(lowerTerm)) || 
       new Date(diary.created_at).toLocaleDateString().includes(lowerTerm) 
     );
-  };
-  const filteredDiaries = getFilteredDiaries();
+  }, [searchTerm, diaries]);
 
   // --- 차트 데이터 가공 (AI 분석 통계용) ---
-  const getChartData = () => {
+  // ⚡ Bolt: Memoized expensive data aggregation
+  const chartInfo = useMemo(() => {
     const today = new Date();
     const oneMonthAgo = new Date();
     oneMonthAgo.setDate(today.getDate() - 30); 
@@ -183,8 +184,7 @@ const DiaryList = ({ activeTab }) => {
       data: Object.keys(emotionCount).map((key) => ({ name: key, value: emotionCount[key] })),
       total: recentCount
     };
-  };
-  const chartInfo = getChartData();
+  }, [diaries]);
 
   // --- 기타 핸들러 ---
   const openModal = (diary, startEditing = false) => {
@@ -313,7 +313,13 @@ const DiaryList = ({ activeTab }) => {
                   </div>
                   {diary.image && (
                     <div className="w-32 h-32 flex-shrink-0 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden self-center shadow-inner">
-                        <img src={diary.image.startsWith('http') ? diary.image : `http://127.0.0.1:8000${diary.image}`} alt="썸네일" className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+                        <img
+                          src={diary.image.startsWith('http') ? diary.image : `http://127.0.0.1:8000${diary.image}`}
+                          alt="썸네일"
+                          // ⚡ Bolt: Lazy load images for performance
+                          loading="lazy"
+                          className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                        />
                     </div>
                   )}
                 </div>
