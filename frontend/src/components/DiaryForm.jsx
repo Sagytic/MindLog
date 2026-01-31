@@ -1,5 +1,5 @@
 // frontend/src/components/DiaryForm.jsx
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { FaPaperPlane, FaImage, FaTimes } from 'react-icons/fa';
 
 const DiaryForm = ({ onSubmit }) => {
@@ -7,6 +7,7 @@ const DiaryForm = ({ onSubmit }) => {
   const [image, setImage] = useState(null);
   const [preview, setPreview] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const fileInputRef = useRef(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -45,12 +46,18 @@ const DiaryForm = ({ onSubmit }) => {
           placeholder="오늘 하루는 어땠나요? 당신의 이야기를 들려주세요..."
           className="w-full h-32 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-400 dark:text-white transition-all text-base leading-relaxed"
           disabled={isSubmitting}
+          aria-label="일기 내용"
         />
         {/* 이미지 미리보기 */}
         {preview && (
           <div className="absolute bottom-4 left-4 w-16 h-16 rounded-lg overflow-hidden border border-gray-200 shadow-sm group">
             <img src={preview} alt="미리보기" className="w-full h-full object-cover" />
-            <button type="button" onClick={() => { setImage(null); setPreview(null); }} className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              type="button"
+              onClick={() => { setImage(null); setPreview(null); }}
+              className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+              aria-label="이미지 삭제"
+            >
               <FaTimes size={12} />
             </button>
           </div>
@@ -58,10 +65,22 @@ const DiaryForm = ({ onSubmit }) => {
       </div>
 
       <div className="flex justify-between items-center mt-4">
-        <label className="cursor-pointer text-gray-500 hover:text-blue-500 transition p-2 rounded-full hover:bg-blue-50 dark:hover:bg-gray-700">
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className="cursor-pointer text-gray-500 hover:text-blue-500 transition p-2 rounded-full hover:bg-blue-50 dark:hover:bg-gray-700"
+          aria-label="사진 첨부"
+        >
           <FaImage size={20} />
-          <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" disabled={isSubmitting} />
-        </label>
+        </button>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleImageChange}
+          className="hidden"
+          disabled={isSubmitting}
+          ref={fileInputRef}
+        />
         <button
           type="submit"
           disabled={!content.trim() || isSubmitting}

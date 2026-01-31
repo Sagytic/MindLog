@@ -273,6 +273,7 @@ const DiaryList = ({ activeTab }) => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full p-4 pl-12 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white transition-all"
+              aria-label="일기 검색"
             />
             <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
           </div>
@@ -299,8 +300,8 @@ const DiaryList = ({ activeTab }) => {
                           {new Date(diary.created_at).toLocaleDateString()}
                         </span>
                         <div className="flex gap-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={(e) => { e.stopPropagation(); openModal(diary, true); }} className="text-gray-400 hover:text-blue-500 p-1"><FaEdit /></button>
-                          <button onClick={(e) => handleDelete(e, diary.id)} className="text-gray-400 hover:text-red-500 p-1"><FaTrashAlt /></button>
+                          <button onClick={(e) => { e.stopPropagation(); openModal(diary, true); }} className="text-gray-400 hover:text-blue-500 p-1" aria-label="일기 수정"><FaEdit /></button>
+                          <button onClick={(e) => handleDelete(e, diary.id)} className="text-gray-400 hover:text-red-500 p-1" aria-label="일기 삭제"><FaTrashAlt /></button>
                         </div>
                       </div>
                       <p className="text-gray-800 dark:text-gray-200 text-sm leading-relaxed line-clamp-3 font-medium">{diary.content}</p>
@@ -386,9 +387,9 @@ const DiaryList = ({ activeTab }) => {
                   {updating ? <span className="text-sm font-bold">분석 중...</span> : <><FaSave size={16} /><span className="text-sm font-bold">저장</span></>}
                 </button>
               ) : (
-                <button onClick={() => setIsEditing(true)} className="text-gray-400 hover:text-blue-500 transition bg-gray-100 dark:bg-gray-700 rounded-full p-2"><FaEdit size={18} /></button>
+                <button onClick={() => setIsEditing(true)} className="text-gray-400 hover:text-blue-500 transition bg-gray-100 dark:bg-gray-700 rounded-full p-2" aria-label="내용 수정"><FaEdit size={18} /></button>
               )}
-              <button onClick={() => setSelectedDiary(null)} disabled={updating} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition bg-gray-100 dark:bg-gray-700 rounded-full p-2 disabled:opacity-50"><FaTimes size={18} /></button>
+              <button onClick={() => setSelectedDiary(null)} disabled={updating} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition bg-gray-100 dark:bg-gray-700 rounded-full p-2 disabled:opacity-50" aria-label="닫기"><FaTimes size={18} /></button>
             </div>
             <div className="text-center mb-6 mt-2">
               <span className="text-sm font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full">
@@ -398,7 +399,7 @@ const DiaryList = ({ activeTab }) => {
             {isEditing ? (
               <div className="flex flex-col gap-4">
                 <textarea className="w-full p-4 border rounded-xl h-40 resize-none focus:outline-none focus:ring-2 focus:ring-blue-400 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white border-gray-200 dark:border-gray-600 disabled:opacity-50"
-                  value={editContent} onChange={(e) => setEditContent(e.target.value)} disabled={updating} />
+                  value={editContent} onChange={(e) => setEditContent(e.target.value)} disabled={updating} aria-label="수정할 내용" />
                 <div className={`border border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-4 text-center ${updating ? 'opacity-50' : ''}`}>
                   <p className="text-sm text-gray-500 mb-2">사진 변경 (선택)</p>
                   <input type="file" accept="image/*" onChange={(e) => setEditImage(e.target.files[0])} disabled={updating}
