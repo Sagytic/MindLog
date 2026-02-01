@@ -11,6 +11,11 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,10 +25,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-h4r9b29iv8+#7z^(1i7n5rb+*%87^d00srf7v%1q*70#eo1@2e'
+# Use environment variable for SECRET_KEY, fallback to a dev key (insecure!) for local development only.
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-h4r9b29iv8+#7z^(1i7n5rb+*%87^d00srf7v%1q*70#eo1@2e')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DJANGO_DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = ['*']
 
@@ -147,8 +153,6 @@ SIMPLE_JWT = {
     # 보안상 헤더에 'Bearer <토큰>' 형태로 보냄
     'AUTH_HEADER_TYPES': ('Bearer',), 
 }
-
-import os
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
