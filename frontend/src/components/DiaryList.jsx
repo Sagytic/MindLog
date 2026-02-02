@@ -1,6 +1,6 @@
 // frontend/src/components/DiaryList.jsx
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import api from '../api'; 
 import Swal from 'sweetalert2'; 
 import { FaTrashAlt, FaTimes, FaEdit, FaSave, FaSearch } from 'react-icons/fa'; 
@@ -31,50 +31,6 @@ const DiaryList = ({ activeTab }) => {
 
   const COLORS = ['#60A5FA', '#F87171', '#FBBF24', '#34D399', '#A78BFA', '#9CA3AF'];
 
-  // [1] 데이터 불러오기 함수
-  const fetchDiaries = useCallback(async (reset = false) => {
-    if (loading) return; 
-    
-    setLoading(true);
-    try {
-      if (activeTab === 'home') {
-        const currentPage = reset ? 1 : page; 
-        
-        // 검색어가 있으면 전체 로드 (임시)
-        let url = `/api/diaries/?page=${currentPage}`;
-        if (searchTerm) url = `/api/diaries/?all=true`; 
-
-        const response = await api.get(url);
-        
-        if (searchTerm) {
-              setDiaries(response.data); 
-              setHasMore(false);
-        } else {
-            const newData = response.data.results ? response.data.results : response.data;
-            const isLastPage = !response.data.next; 
-
-            if (reset) {
-                setDiaries(newData);
-            } else {
-                setDiaries(prev => [...prev, ...newData]); 
-            }
-
-            setHasMore(!isLastPage); 
-            if (!isLastPage) setPage(prev => prev + 1); 
-        }
-
-      } else {
-        // 캘린더/통계: 전체 데이터 로드
-        const response = await api.get('/api/diaries/?all=true');
-        setDiaries(response.data); 
-      }
-    } catch (error) {
-      console.error("데이터 로드 실패:", error);
-      setHasMore(false); 
-    } finally {
-      setLoading(false);
-    }
-  }, [activeTab, page, searchTerm]); 
 
   // [2] 초기화 및 리셋 로직
   useEffect(() => {
@@ -117,7 +73,7 @@ const DiaryList = ({ activeTab }) => {
                 setDiaries(prev => [...prev, ...newData]);
                 setHasMore(!!response.data.next);
                 if (response.data.next) setPage(prev => prev + 1);
-            } catch (e) { setHasMore(false); }
+            } catch { setHasMore(false); }
             finally { setLoading(false); }
         };
         loadMore();
@@ -149,7 +105,7 @@ const DiaryList = ({ activeTab }) => {
   };
 
   // --- 검색 필터링 ---
-  const getFilteredDiaries = () => {
+  const filteredDiaries = useMemo(() => {
     if (!searchTerm) return diaries;
     const lowerTerm = searchTerm.toLowerCase();
     return diaries.filter(diary => 
@@ -157,11 +113,10 @@ const DiaryList = ({ activeTab }) => {
       (diary.emotion && diary.emotion.includes(lowerTerm)) || 
       new Date(diary.created_at).toLocaleDateString().includes(lowerTerm) 
     );
-  };
-  const filteredDiaries = getFilteredDiaries();
+  }, [diaries, searchTerm]);
 
   // --- 차트 데이터 가공 (AI 분석 통계용) ---
-  const getChartData = () => {
+  const chartInfo = useMemo(() => {
     const today = new Date();
     const oneMonthAgo = new Date();
     oneMonthAgo.setDate(today.getDate() - 30); 
@@ -183,8 +138,7 @@ const DiaryList = ({ activeTab }) => {
       data: Object.keys(emotionCount).map((key) => ({ name: key, value: emotionCount[key] })),
       total: recentCount
     };
-  };
-  const chartInfo = getChartData();
+  }, [diaries]);
 
   // --- 기타 핸들러 ---
   const openModal = (diary, startEditing = false) => {
@@ -208,7 +162,7 @@ const DiaryList = ({ activeTab }) => {
           setDiaries(prev => prev.filter(diary => diary.id !== id));
           if (selectedDiary && selectedDiary.id === id) setSelectedDiary(null);
           Swal.fire('삭제됨', '', 'success');
-        } catch (error) {
+        } catch {
           Swal.fire('실패', '오류가 발생했습니다.', 'error');
         }
       }
@@ -231,7 +185,7 @@ const DiaryList = ({ activeTab }) => {
       setSelectedDiary(updatedDiary);
       setIsEditing(false);
       Swal.fire({ icon: 'success', title: '수정 완료!', toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
-    } catch (error) {
+    } catch {
       Swal.fire('수정 실패', '잠시 후 다시 시도해주세요.', 'error');
     } finally {
       setUpdating(false);
@@ -248,9 +202,17 @@ const DiaryList = ({ activeTab }) => {
     return "📝"; 
   };
 
+  const diaryDateMap = useMemo(() => {
+    const map = new Map();
+    diaries.forEach(d => {
+      map.set(new Date(d.created_at).toDateString(), d);
+    });
+    return map;
+  }, [diaries]);
+
   const tileContent = ({ date, view }) => {
     if (view === 'month') {
-      const diary = diaries.find(d => new Date(d.created_at).toDateString() === date.toDateString());
+      const diary = diaryDateMap.get(date.toDateString());
       if (diary) return <div className="flex flex-col items-center mt-1"><span className="text-xl">{getEmotionEmoji(diary.emotion)}</span></div>;
     }
   };
@@ -313,7 +275,7 @@ const DiaryList = ({ activeTab }) => {
                   </div>
                   {diary.image && (
                     <div className="w-32 h-32 flex-shrink-0 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden self-center shadow-inner">
-                        <img src={diary.image.startsWith('http') ? diary.image : `http://127.0.0.1:8000${diary.image}`} alt="썸네일" className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+                        <img src={diary.image.startsWith('http') ? diary.image : `http://127.0.0.1:8000${diary.image}`} alt="썸네일" loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
                     </div>
                   )}
                 </div>
