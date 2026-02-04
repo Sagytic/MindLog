@@ -1,0 +1,3 @@
+## 2026-02-04 - Redundant ARIA Labels on Dynamic Buttons
+**Learning:** Adding `aria-label` to buttons that already contain visible text can override helpful dynamic status updates for screen readers. For example, a "Save" button that changes text to "Analyzing..." during processing should NOT have a static `aria-label="Save"`, as this forces the screen reader to announce "Save" even when the visible text says "Analyzing...", hiding the state change from the user.
+**Action:** Only add `aria-label` to icon-only buttons or inputs without visible labels. For buttons with text, rely on the visible text content unless it's non-descriptive.
