@@ -1,6 +1,6 @@
 // frontend/src/components/DiaryList.jsx
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import api from '../api'; 
 import Swal from 'sweetalert2'; 
 import { FaTrashAlt, FaTimes, FaEdit, FaSave, FaSearch } from 'react-icons/fa'; 
@@ -248,9 +248,23 @@ const DiaryList = ({ activeTab }) => {
     return "📝"; 
   };
 
+  // ★ [Optimization] Calendar lookup optimization
+  // Convert list to map for O(1) access during calendar rendering
+  const diaryDateMap = useMemo(() => {
+    const map = new Map();
+    // diaries is sorted by date desc, so we only set if not present to keep the latest
+    diaries.forEach(diary => {
+      const dateStr = new Date(diary.created_at).toDateString();
+      if (!map.has(dateStr)) {
+        map.set(dateStr, diary);
+      }
+    });
+    return map;
+  }, [diaries]);
+
   const tileContent = ({ date, view }) => {
     if (view === 'month') {
-      const diary = diaries.find(d => new Date(d.created_at).toDateString() === date.toDateString());
+      const diary = diaryDateMap.get(date.toDateString());
       if (diary) return <div className="flex flex-col items-center mt-1"><span className="text-xl">{getEmotionEmoji(diary.emotion)}</span></div>;
     }
   };
@@ -335,7 +349,7 @@ const DiaryList = ({ activeTab }) => {
         <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 animate-fade-in">
            <Calendar className="w-full" locale="ko-KR" tileContent={tileContent}
              onClickDay={(date) => {
-               const diary = diaries.find(d => new Date(d.created_at).toDateString() === date.toDateString());
+               const diary = diaryDateMap.get(date.toDateString());
                if (diary) openModal(diary, false);
              }}
            />
