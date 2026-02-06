@@ -50,7 +50,7 @@ const DiaryForm = ({ onSubmit }) => {
         {preview && (
           <div className="absolute bottom-4 left-4 w-16 h-16 rounded-lg overflow-hidden border border-gray-200 shadow-sm group">
             <img src={preview} alt="미리보기" className="w-full h-full object-cover" />
-            <button type="button" onClick={() => { setImage(null); setPreview(null); }} className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <button type="button" onClick={() => { setImage(null); setPreview(null); }} className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" aria-label="이미지 삭제">
               <FaTimes size={12} />
             </button>
           </div>
