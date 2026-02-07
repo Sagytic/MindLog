@@ -268,6 +268,7 @@ const DiaryList = ({ activeTab }) => {
           {/* 검색창 */}
           <div className="mb-6 relative">
             <input 
+              aria-label="검색"
               type="text"
               placeholder="내용, 감정, 날짜로 검색해보세요..."
               value={searchTerm}
@@ -298,9 +299,9 @@ const DiaryList = ({ activeTab }) => {
                         <span className="text-xs text-gray-400 dark:text-gray-500 font-bold tracking-wider uppercase">
                           {new Date(diary.created_at).toLocaleDateString()}
                         </span>
-                        <div className="flex gap-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={(e) => { e.stopPropagation(); openModal(diary, true); }} className="text-gray-400 hover:text-blue-500 p-1"><FaEdit /></button>
-                          <button onClick={(e) => handleDelete(e, diary.id)} className="text-gray-400 hover:text-red-500 p-1"><FaTrashAlt /></button>
+                        <div className="flex gap-2 z-10 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                          <button aria-label="일기 수정" onClick={(e) => { e.stopPropagation(); openModal(diary, true); }} className="text-gray-400 hover:text-blue-500 p-1"><FaEdit /></button>
+                          <button aria-label="일기 삭제" onClick={(e) => handleDelete(e, diary.id)} className="text-gray-400 hover:text-red-500 p-1"><FaTrashAlt /></button>
                         </div>
                       </div>
                       <p className="text-gray-800 dark:text-gray-200 text-sm leading-relaxed line-clamp-3 font-medium">{diary.content}</p>
@@ -386,9 +387,9 @@ const DiaryList = ({ activeTab }) => {
                   {updating ? <span className="text-sm font-bold">분석 중...</span> : <><FaSave size={16} /><span className="text-sm font-bold">저장</span></>}
                 </button>
               ) : (
-                <button onClick={() => setIsEditing(true)} className="text-gray-400 hover:text-blue-500 transition bg-gray-100 dark:bg-gray-700 rounded-full p-2"><FaEdit size={18} /></button>
+                <button aria-label="수정" onClick={() => setIsEditing(true)} className="text-gray-400 hover:text-blue-500 transition bg-gray-100 dark:bg-gray-700 rounded-full p-2"><FaEdit size={18} /></button>
               )}
-              <button onClick={() => setSelectedDiary(null)} disabled={updating} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition bg-gray-100 dark:bg-gray-700 rounded-full p-2 disabled:opacity-50"><FaTimes size={18} /></button>
+              <button aria-label="닫기" onClick={() => setSelectedDiary(null)} disabled={updating} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition bg-gray-100 dark:bg-gray-700 rounded-full p-2 disabled:opacity-50"><FaTimes size={18} /></button>
             </div>
             <div className="text-center mb-6 mt-2">
               <span className="text-sm font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full">
