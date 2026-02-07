@@ -1,6 +1,6 @@
 // frontend/src/components/DiaryList.jsx
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import api from '../api'; 
 import Swal from 'sweetalert2'; 
 import { FaTrashAlt, FaTimes, FaEdit, FaSave, FaSearch } from 'react-icons/fa'; 
@@ -12,6 +12,16 @@ import { useInView } from 'react-intersection-observer';
 
 // ★ [추가] 분리한 작성 폼 컴포넌트 불러오기
 import DiaryForm from './DiaryForm'; 
+
+const getEmotionEmoji = (emotion) => {
+  if (!emotion) return "📅";
+  if (emotion.includes("행복") || emotion.includes("기쁨")) return "🥰";
+  if (emotion.includes("슬픔") || emotion.includes("우울")) return "😭";
+  if (emotion.includes("화") || emotion.includes("분노")) return "😡";
+  if (emotion.includes("불안") || emotion.includes("걱정")) return "😬";
+  if (emotion.includes("평온") || emotion.includes("보통")) return "🙂";
+  return "📝";
+};
 
 const DiaryList = ({ activeTab }) => {
   const [diaries, setDiaries] = useState([]);
@@ -149,7 +159,7 @@ const DiaryList = ({ activeTab }) => {
   };
 
   // --- 검색 필터링 ---
-  const getFilteredDiaries = () => {
+  const filteredDiaries = useMemo(() => {
     if (!searchTerm) return diaries;
     const lowerTerm = searchTerm.toLowerCase();
     return diaries.filter(diary => 
@@ -157,11 +167,10 @@ const DiaryList = ({ activeTab }) => {
       (diary.emotion && diary.emotion.includes(lowerTerm)) || 
       new Date(diary.created_at).toLocaleDateString().includes(lowerTerm) 
     );
-  };
-  const filteredDiaries = getFilteredDiaries();
+  }, [searchTerm, diaries]);
 
   // --- 차트 데이터 가공 (AI 분석 통계용) ---
-  const getChartData = () => {
+  const chartInfo = useMemo(() => {
     const today = new Date();
     const oneMonthAgo = new Date();
     oneMonthAgo.setDate(today.getDate() - 30); 
@@ -183,8 +192,7 @@ const DiaryList = ({ activeTab }) => {
       data: Object.keys(emotionCount).map((key) => ({ name: key, value: emotionCount[key] })),
       total: recentCount
     };
-  };
-  const chartInfo = getChartData();
+  }, [diaries]);
 
   // --- 기타 핸들러 ---
   const openModal = (diary, startEditing = false) => {
@@ -238,22 +246,20 @@ const DiaryList = ({ activeTab }) => {
     }
   };
 
-  const getEmotionEmoji = (emotion) => {
-    if (!emotion) return "📅"; 
-    if (emotion.includes("행복") || emotion.includes("기쁨")) return "🥰";
-    if (emotion.includes("슬픔") || emotion.includes("우울")) return "😭";
-    if (emotion.includes("화") || emotion.includes("분노")) return "😡";
-    if (emotion.includes("불안") || emotion.includes("걱정")) return "😬";
-    if (emotion.includes("평온") || emotion.includes("보통")) return "🙂";
-    return "📝"; 
-  };
+  const diaryDateMap = useMemo(() => {
+    const map = new Map();
+    diaries.forEach(d => {
+      map.set(new Date(d.created_at).toDateString(), d);
+    });
+    return map;
+  }, [diaries]);
 
-  const tileContent = ({ date, view }) => {
+  const tileContent = useCallback(({ date, view }) => {
     if (view === 'month') {
-      const diary = diaries.find(d => new Date(d.created_at).toDateString() === date.toDateString());
+      const diary = diaryDateMap.get(date.toDateString());
       if (diary) return <div className="flex flex-col items-center mt-1"><span className="text-xl">{getEmotionEmoji(diary.emotion)}</span></div>;
     }
-  };
+  }, [diaryDateMap]);
 
   return (
     <div className="w-full">
