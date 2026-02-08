@@ -1,6 +1,6 @@
 // frontend/src/components/DiaryList.jsx
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import api from '../api'; 
 import Swal from 'sweetalert2'; 
 import { FaTrashAlt, FaTimes, FaEdit, FaSave, FaSearch } from 'react-icons/fa'; 
@@ -149,7 +149,7 @@ const DiaryList = ({ activeTab }) => {
   };
 
   // --- 검색 필터링 ---
-  const getFilteredDiaries = () => {
+  const filteredDiaries = useMemo(() => {
     if (!searchTerm) return diaries;
     const lowerTerm = searchTerm.toLowerCase();
     return diaries.filter(diary => 
@@ -157,11 +157,10 @@ const DiaryList = ({ activeTab }) => {
       (diary.emotion && diary.emotion.includes(lowerTerm)) || 
       new Date(diary.created_at).toLocaleDateString().includes(lowerTerm) 
     );
-  };
-  const filteredDiaries = getFilteredDiaries();
+  }, [diaries, searchTerm]);
 
   // --- 차트 데이터 가공 (AI 분석 통계용) ---
-  const getChartData = () => {
+  const chartInfo = useMemo(() => {
     const today = new Date();
     const oneMonthAgo = new Date();
     oneMonthAgo.setDate(today.getDate() - 30); 
@@ -183,8 +182,7 @@ const DiaryList = ({ activeTab }) => {
       data: Object.keys(emotionCount).map((key) => ({ name: key, value: emotionCount[key] })),
       total: recentCount
     };
-  };
-  const chartInfo = getChartData();
+  }, [diaries]);
 
   // --- 기타 핸들러 ---
   const openModal = (diary, startEditing = false) => {
@@ -248,9 +246,22 @@ const DiaryList = ({ activeTab }) => {
     return "📝"; 
   };
 
+  // ★ [Optimization] Create a map for O(1) date lookup
+  const diaryDateMap = useMemo(() => {
+    const map = new Map();
+    diaries.forEach(diary => {
+      const dateStr = new Date(diary.created_at).toDateString();
+      if (!map.has(dateStr)) {
+        map.set(dateStr, diary);
+      }
+    });
+    return map;
+  }, [diaries]);
+
   const tileContent = ({ date, view }) => {
     if (view === 'month') {
-      const diary = diaries.find(d => new Date(d.created_at).toDateString() === date.toDateString());
+      // Use map for O(1) lookup instead of find O(N)
+      const diary = diaryDateMap.get(date.toDateString());
       if (diary) return <div className="flex flex-col items-center mt-1"><span className="text-xl">{getEmotionEmoji(diary.emotion)}</span></div>;
     }
   };
