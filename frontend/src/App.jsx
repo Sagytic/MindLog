@@ -6,23 +6,13 @@ import Register from './components/Register';
 import DiaryList from './components/DiaryList';
 import { FaSignOutAlt } from 'react-icons/fa';
 import { HiHome, HiCalendar, HiChartPie, HiMenu, HiX } from 'react-icons/hi'; 
-import api from './api'; 
 
 function App() {
   const [darkMode, setDarkMode] = useState(true);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem("accessToken"));
   const [activeTab, setActiveTab] = useState('home');
-  const [username, setUsername] = useState("사용자");
+  const [username, setUsername] = useState(() => localStorage.getItem("username") || "사용자");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    const storedUser = localStorage.getItem("username");
-    if (token) {
-      setIsLoggedIn(true);
-      if (storedUser) setUsername(storedUser);
-    }
-  }, []);
 
   useEffect(() => {
     if (darkMode) {
