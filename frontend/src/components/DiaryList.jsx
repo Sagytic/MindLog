@@ -32,6 +32,7 @@ const DiaryList = ({ activeTab }) => {
   const COLORS = ['#60A5FA', '#F87171', '#FBBF24', '#34D399', '#A78BFA', '#9CA3AF'];
 
   // [1] 데이터 불러오기 함수
+  // eslint-disable-next-line no-unused-vars
   const fetchDiaries = useCallback(async (reset = false) => {
     if (loading) return; 
     
@@ -117,7 +118,7 @@ const DiaryList = ({ activeTab }) => {
                 setDiaries(prev => [...prev, ...newData]);
                 setHasMore(!!response.data.next);
                 if (response.data.next) setPage(prev => prev + 1);
-            } catch (e) { setHasMore(false); }
+            } catch { setHasMore(false); }
             finally { setLoading(false); }
         };
         loadMore();
@@ -208,7 +209,7 @@ const DiaryList = ({ activeTab }) => {
           setDiaries(prev => prev.filter(diary => diary.id !== id));
           if (selectedDiary && selectedDiary.id === id) setSelectedDiary(null);
           Swal.fire('삭제됨', '', 'success');
-        } catch (error) {
+        } catch {
           Swal.fire('실패', '오류가 발생했습니다.', 'error');
         }
       }
@@ -231,7 +232,7 @@ const DiaryList = ({ activeTab }) => {
       setSelectedDiary(updatedDiary);
       setIsEditing(false);
       Swal.fire({ icon: 'success', title: '수정 완료!', toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
-    } catch (error) {
+    } catch {
       Swal.fire('수정 실패', '잠시 후 다시 시도해주세요.', 'error');
     } finally {
       setUpdating(false);
@@ -270,6 +271,7 @@ const DiaryList = ({ activeTab }) => {
             <input 
               type="text"
               placeholder="내용, 감정, 날짜로 검색해보세요..."
+              aria-label="일기 검색"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full p-4 pl-12 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white transition-all"
@@ -298,9 +300,9 @@ const DiaryList = ({ activeTab }) => {
                         <span className="text-xs text-gray-400 dark:text-gray-500 font-bold tracking-wider uppercase">
                           {new Date(diary.created_at).toLocaleDateString()}
                         </span>
-                        <div className="flex gap-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={(e) => { e.stopPropagation(); openModal(diary, true); }} className="text-gray-400 hover:text-blue-500 p-1"><FaEdit /></button>
-                          <button onClick={(e) => handleDelete(e, diary.id)} className="text-gray-400 hover:text-red-500 p-1"><FaTrashAlt /></button>
+                        <div className="flex gap-2 z-10 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                          <button onClick={(e) => { e.stopPropagation(); openModal(diary, true); }} aria-label="일기 수정" className="text-gray-400 hover:text-blue-500 p-1"><FaEdit /></button>
+                          <button onClick={(e) => handleDelete(e, diary.id)} aria-label="일기 삭제" className="text-gray-400 hover:text-red-500 p-1"><FaTrashAlt /></button>
                         </div>
                       </div>
                       <p className="text-gray-800 dark:text-gray-200 text-sm leading-relaxed line-clamp-3 font-medium">{diary.content}</p>
@@ -386,9 +388,9 @@ const DiaryList = ({ activeTab }) => {
                   {updating ? <span className="text-sm font-bold">분석 중...</span> : <><FaSave size={16} /><span className="text-sm font-bold">저장</span></>}
                 </button>
               ) : (
-                <button onClick={() => setIsEditing(true)} className="text-gray-400 hover:text-blue-500 transition bg-gray-100 dark:bg-gray-700 rounded-full p-2"><FaEdit size={18} /></button>
+                <button onClick={() => setIsEditing(true)} aria-label="수정" className="text-gray-400 hover:text-blue-500 transition bg-gray-100 dark:bg-gray-700 rounded-full p-2"><FaEdit size={18} /></button>
               )}
-              <button onClick={() => setSelectedDiary(null)} disabled={updating} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition bg-gray-100 dark:bg-gray-700 rounded-full p-2 disabled:opacity-50"><FaTimes size={18} /></button>
+              <button onClick={() => setSelectedDiary(null)} aria-label="닫기" disabled={updating} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition bg-gray-100 dark:bg-gray-700 rounded-full p-2 disabled:opacity-50"><FaTimes size={18} /></button>
             </div>
             <div className="text-center mb-6 mt-2">
               <span className="text-sm font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full">
@@ -401,7 +403,7 @@ const DiaryList = ({ activeTab }) => {
                   value={editContent} onChange={(e) => setEditContent(e.target.value)} disabled={updating} />
                 <div className={`border border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-4 text-center ${updating ? 'opacity-50' : ''}`}>
                   <p className="text-sm text-gray-500 mb-2">사진 변경 (선택)</p>
-                  <input type="file" accept="image/*" onChange={(e) => setEditImage(e.target.files[0])} disabled={updating}
+                  <input type="file" accept="image/*" onChange={(e) => setEditImage(e.target.files[0])} disabled={updating} aria-label="사진 변경"
                     className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-gray-700" />
                 </div>
               </div>
