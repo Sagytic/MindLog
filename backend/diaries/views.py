@@ -1,7 +1,7 @@
 from rest_framework import viewsets, generics
 from rest_framework.permissions import IsAuthenticated
 from .models import Diary
-from .serializers import DiarySerializer
+from .serializers import DiarySerializer, DiarySimpleSerializer
 from .ai_utils import analyze_diary
 from django.contrib.auth.models import User
 from .serializers import UserSerializer
@@ -24,6 +24,12 @@ class DiaryViewSet(viewsets.ModelViewSet):
 
     # [수정] list 메서드를 오버라이딩하여 '?all=true' 처리
     def list(self, request, *args, **kwargs):
+        # 캘린더/통계용 경량화된 데이터 반환 (페이지네이션 없음)
+        if request.query_params.get('mode') == 'calendar':
+            self.pagination_class = None
+            self.serializer_class = DiarySimpleSerializer
+            return super().list(request, *args, **kwargs)
+
         # 만약 URL에 ?all=true 가 붙어있다면 페이지네이션 없이 다 반환 (캘린더/통계용)
         if request.query_params.get('all') == 'true':
             self.pagination_class = None

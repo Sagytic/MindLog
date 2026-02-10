@@ -32,6 +32,7 @@ const DiaryList = ({ activeTab }) => {
   const COLORS = ['#60A5FA', '#F87171', '#FBBF24', '#34D399', '#A78BFA', '#9CA3AF'];
 
   // [1] 데이터 불러오기 함수
+  // eslint-disable-next-line no-unused-vars
   const fetchDiaries = useCallback(async (reset = false) => {
     if (loading) return; 
     
@@ -64,8 +65,8 @@ const DiaryList = ({ activeTab }) => {
         }
 
       } else {
-        // 캘린더/통계: 전체 데이터 로드
-        const response = await api.get('/api/diaries/?all=true');
+        // 캘린더/통계: 전체 데이터 로드 (경량화된 데이터)
+        const response = await api.get('/api/diaries/?mode=calendar');
         setDiaries(response.data); 
       }
     } catch (error) {
@@ -87,7 +88,7 @@ const DiaryList = ({ activeTab }) => {
             setLoading(true);
             let url = "";
             if (activeTab === 'home' && !searchTerm) url = `/api/diaries/?page=1`;
-            else url = `/api/diaries/?all=true`;
+            else url = `/api/diaries/?mode=calendar`;
             
             const response = await api.get(url);
             const data = response.data.results ? response.data.results : response.data;
@@ -117,7 +118,7 @@ const DiaryList = ({ activeTab }) => {
                 setDiaries(prev => [...prev, ...newData]);
                 setHasMore(!!response.data.next);
                 if (response.data.next) setPage(prev => prev + 1);
-            } catch (e) { setHasMore(false); }
+            } catch { setHasMore(false); }
             finally { setLoading(false); }
         };
         loadMore();
@@ -208,7 +209,7 @@ const DiaryList = ({ activeTab }) => {
           setDiaries(prev => prev.filter(diary => diary.id !== id));
           if (selectedDiary && selectedDiary.id === id) setSelectedDiary(null);
           Swal.fire('삭제됨', '', 'success');
-        } catch (error) {
+        } catch {
           Swal.fire('실패', '오류가 발생했습니다.', 'error');
         }
       }
@@ -231,7 +232,7 @@ const DiaryList = ({ activeTab }) => {
       setSelectedDiary(updatedDiary);
       setIsEditing(false);
       Swal.fire({ icon: 'success', title: '수정 완료!', toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
-    } catch (error) {
+    } catch {
       Swal.fire('수정 실패', '잠시 후 다시 시도해주세요.', 'error');
     } finally {
       setUpdating(false);
@@ -334,9 +335,19 @@ const DiaryList = ({ activeTab }) => {
       {activeTab === 'calendar' && (
         <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 animate-fade-in">
            <Calendar className="w-full" locale="ko-KR" tileContent={tileContent}
-             onClickDay={(date) => {
-               const diary = diaries.find(d => new Date(d.created_at).toDateString() === date.toDateString());
-               if (diary) openModal(diary, false);
+             onClickDay={async (date) => {
+               const simpleDiary = diaries.find(d => new Date(d.created_at).toDateString() === date.toDateString());
+               if (simpleDiary) {
+                  try {
+                      // 전체 데이터 가져오기 (content, advice, image 등)
+                      const res = await api.get(`/api/diaries/${simpleDiary.id}/`);
+                      openModal(res.data, false);
+                  } catch (e) {
+                      console.error("일기 상세 정보 로드 실패:", e);
+                      // 실패 시 간단한 정보라도 띄우거나 에러 처리
+                      openModal(simpleDiary, false);
+                  }
+               }
              }}
            />
         </div>
