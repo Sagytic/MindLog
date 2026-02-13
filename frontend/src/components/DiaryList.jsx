@@ -64,8 +64,8 @@ const DiaryList = ({ activeTab }) => {
         }
 
       } else {
-        // 캘린더/통계: 전체 데이터 로드
-        const response = await api.get('/api/diaries/?all=true');
+        // 캘린더/통계: 전체 데이터 로드 (최적화: 필수 필드만)
+        const response = await api.get('/api/diaries/?mode=calendar');
         setDiaries(response.data); 
       }
     } catch (error) {
@@ -86,8 +86,12 @@ const DiaryList = ({ activeTab }) => {
         try {
             setLoading(true);
             let url = "";
-            if (activeTab === 'home' && !searchTerm) url = `/api/diaries/?page=1`;
-            else url = `/api/diaries/?all=true`;
+            if (activeTab === 'home') {
+                if (!searchTerm) url = `/api/diaries/?page=1`;
+                else url = `/api/diaries/?all=true`;
+            } else {
+                url = `/api/diaries/?mode=calendar`;
+            }
             
             const response = await api.get(url);
             const data = response.data.results ? response.data.results : response.data;
@@ -334,9 +338,18 @@ const DiaryList = ({ activeTab }) => {
       {activeTab === 'calendar' && (
         <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 animate-fade-in">
            <Calendar className="w-full" locale="ko-KR" tileContent={tileContent}
-             onClickDay={(date) => {
-               const diary = diaries.find(d => new Date(d.created_at).toDateString() === date.toDateString());
-               if (diary) openModal(diary, false);
+             onClickDay={async (date) => {
+               const simpleDiary = diaries.find(d => new Date(d.created_at).toDateString() === date.toDateString());
+               if (simpleDiary) {
+                   try {
+                       // [최적화] 상세 내용은 클릭 시 로드
+                       const res = await api.get(`/api/diaries/${simpleDiary.id}/`);
+                       openModal(res.data, false);
+                   } catch (err) {
+                       console.error("상세 로드 실패", err);
+                       Swal.fire('오류', '일기를 불러오지 못했습니다.', 'error');
+                   }
+               }
              }}
            />
         </div>
