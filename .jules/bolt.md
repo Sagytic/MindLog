@@ -1,0 +1,3 @@
+## 2024-05-23 - Search API Spam and Logic Duplication
+**Learning:** The `DiaryList` component fetched all diaries (`?all=true`) on every keystroke of the search input, creating a severe performance bottleneck. Additionally, a `fetchDiaries` function existed but was unused, with the actual fetching logic duplicated inside `useEffect`. This duplication made the code harder to optimize and reason about.
+**Action:** When optimizing search or list views, always check for duplicate fetching logic and ensure debounce is applied to prevent API spam, especially when the API returns heavy payloads (like full lists). Verify if helper functions are actually used before optimizing them.
