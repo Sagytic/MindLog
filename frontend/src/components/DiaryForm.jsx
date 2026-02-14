@@ -40,6 +40,7 @@ const DiaryForm = ({ onSubmit }) => {
     <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 mb-8 transition-colors">
       <div className="relative">
         <textarea
+          aria-label="일기 내용 입력"
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder="오늘 하루는 어땠나요? 당신의 이야기를 들려주세요..."
@@ -50,7 +51,7 @@ const DiaryForm = ({ onSubmit }) => {
         {preview && (
           <div className="absolute bottom-4 left-4 w-16 h-16 rounded-lg overflow-hidden border border-gray-200 shadow-sm group">
             <img src={preview} alt="미리보기" className="w-full h-full object-cover" />
-            <button type="button" onClick={() => { setImage(null); setPreview(null); }} className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <button aria-label="첨부 이미지 삭제" type="button" onClick={() => { setImage(null); setPreview(null); }} className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
               <FaTimes size={12} />
             </button>
           </div>
@@ -58,9 +59,9 @@ const DiaryForm = ({ onSubmit }) => {
       </div>
 
       <div className="flex justify-between items-center mt-4">
-        <label className="cursor-pointer text-gray-500 hover:text-blue-500 transition p-2 rounded-full hover:bg-blue-50 dark:hover:bg-gray-700">
+        <label title="이미지 업로드" className="cursor-pointer text-gray-500 hover:text-blue-500 transition p-2 rounded-full hover:bg-blue-50 dark:hover:bg-gray-700 focus-within:ring-2 focus-within:ring-blue-400 focus-within:ring-offset-2">
           <FaImage size={20} />
-          <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" disabled={isSubmitting} />
+          <input aria-label="이미지 업로드" type="file" accept="image/*" onChange={handleImageChange} className="sr-only" disabled={isSubmitting} />
         </label>
         <button
           type="submit"
