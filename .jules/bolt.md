@@ -1,0 +1,3 @@
+## 2024-05-24 - Calendar Rendering & Data Fetching Optimization
+**Learning:** `react-calendar`'s `tileContent` function runs for every visible tile on every render. Using `array.find()` inside this function creates an O(N * M) performance bottleneck (N=tiles, M=data items). This is especially costly when the data array grows. Also, fetching full objects (with large text/images) for a view that only needs date/emotion (like Calendar/Stats) wastes significant bandwidth and memory.
+**Action:** Always memoize data into a `Map` (date -> data) for O(1) lookups in render loops. Create lightweight API endpoints (or serializers) that return only necessary fields for list/calendar views, and lazy-load full details on demand.
