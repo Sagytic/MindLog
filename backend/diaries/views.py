@@ -1,12 +1,13 @@
 from rest_framework import viewsets, generics
 from rest_framework.permissions import IsAuthenticated
 from .models import Diary
-from .serializers import DiarySerializer
+from .serializers import DiarySerializer, DiarySimpleSerializer
 from .ai_utils import analyze_diary
 from django.contrib.auth.models import User
 from .serializers import UserSerializer
 from rest_framework.permissions import AllowAny
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.response import Response
 
 # [추가] 10개씩 끊어주는 규칙 만들기
 class DiaryPagination(PageNumberPagination):
@@ -24,6 +25,13 @@ class DiaryViewSet(viewsets.ModelViewSet):
 
     # [수정] list 메서드를 오버라이딩하여 '?all=true' 처리
     def list(self, request, *args, **kwargs):
+        # 만약 URL에 ?mode=calendar 가 붙어있다면 페이지네이션 없이, 가벼운 데이터만 반환
+        if request.query_params.get('mode') == 'calendar':
+            self.pagination_class = None
+            queryset = self.filter_queryset(self.get_queryset())
+            serializer = DiarySimpleSerializer(queryset, many=True)
+            return Response(serializer.data)
+
         # 만약 URL에 ?all=true 가 붙어있다면 페이지네이션 없이 다 반환 (캘린더/통계용)
         if request.query_params.get('all') == 'true':
             self.pagination_class = None
