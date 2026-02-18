@@ -1,6 +1,6 @@
 // frontend/src/components/DiaryList.jsx
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import api from '../api'; 
 import Swal from 'sweetalert2'; 
 import { FaTrashAlt, FaTimes, FaEdit, FaSave, FaSearch } from 'react-icons/fa'; 
@@ -12,6 +12,17 @@ import { useInView } from 'react-intersection-observer';
 
 // ★ [추가] 분리한 작성 폼 컴포넌트 불러오기
 import DiaryForm from './DiaryForm'; 
+
+// 이모지 변환 함수 (컴포넌트 외부로 이동하여 불필요한 재생성 방지)
+const getEmotionEmoji = (emotion) => {
+  if (!emotion) return "📅";
+  if (emotion.includes("행복") || emotion.includes("기쁨")) return "🥰";
+  if (emotion.includes("슬픔") || emotion.includes("우울")) return "😭";
+  if (emotion.includes("화") || emotion.includes("분노")) return "😡";
+  if (emotion.includes("불안") || emotion.includes("걱정")) return "😬";
+  if (emotion.includes("평온") || emotion.includes("보통")) return "🙂";
+  return "📝";
+};
 
 const DiaryList = ({ activeTab }) => {
   const [diaries, setDiaries] = useState([]);
@@ -31,50 +42,6 @@ const DiaryList = ({ activeTab }) => {
 
   const COLORS = ['#60A5FA', '#F87171', '#FBBF24', '#34D399', '#A78BFA', '#9CA3AF'];
 
-  // [1] 데이터 불러오기 함수
-  const fetchDiaries = useCallback(async (reset = false) => {
-    if (loading) return; 
-    
-    setLoading(true);
-    try {
-      if (activeTab === 'home') {
-        const currentPage = reset ? 1 : page; 
-        
-        // 검색어가 있으면 전체 로드 (임시)
-        let url = `/api/diaries/?page=${currentPage}`;
-        if (searchTerm) url = `/api/diaries/?all=true`; 
-
-        const response = await api.get(url);
-        
-        if (searchTerm) {
-              setDiaries(response.data); 
-              setHasMore(false);
-        } else {
-            const newData = response.data.results ? response.data.results : response.data;
-            const isLastPage = !response.data.next; 
-
-            if (reset) {
-                setDiaries(newData);
-            } else {
-                setDiaries(prev => [...prev, ...newData]); 
-            }
-
-            setHasMore(!isLastPage); 
-            if (!isLastPage) setPage(prev => prev + 1); 
-        }
-
-      } else {
-        // 캘린더/통계: 전체 데이터 로드
-        const response = await api.get('/api/diaries/?all=true');
-        setDiaries(response.data); 
-      }
-    } catch (error) {
-      console.error("데이터 로드 실패:", error);
-      setHasMore(false); 
-    } finally {
-      setLoading(false);
-    }
-  }, [activeTab, page, searchTerm]); 
 
   // [2] 초기화 및 리셋 로직
   useEffect(() => {
@@ -117,7 +84,7 @@ const DiaryList = ({ activeTab }) => {
                 setDiaries(prev => [...prev, ...newData]);
                 setHasMore(!!response.data.next);
                 if (response.data.next) setPage(prev => prev + 1);
-            } catch (e) { setHasMore(false); }
+            } catch { setHasMore(false); }
             finally { setLoading(false); }
         };
         loadMore();
@@ -148,8 +115,8 @@ const DiaryList = ({ activeTab }) => {
     }
   };
 
-  // --- 검색 필터링 ---
-  const getFilteredDiaries = () => {
+  // --- 검색 필터링 (useMemo 적용) ---
+  const filteredDiaries = useMemo(() => {
     if (!searchTerm) return diaries;
     const lowerTerm = searchTerm.toLowerCase();
     return diaries.filter(diary => 
@@ -157,11 +124,10 @@ const DiaryList = ({ activeTab }) => {
       (diary.emotion && diary.emotion.includes(lowerTerm)) || 
       new Date(diary.created_at).toLocaleDateString().includes(lowerTerm) 
     );
-  };
-  const filteredDiaries = getFilteredDiaries();
+  }, [diaries, searchTerm]);
 
-  // --- 차트 데이터 가공 (AI 분석 통계용) ---
-  const getChartData = () => {
+  // --- 차트 데이터 가공 (useMemo 적용) ---
+  const chartInfo = useMemo(() => {
     const today = new Date();
     const oneMonthAgo = new Date();
     oneMonthAgo.setDate(today.getDate() - 30); 
@@ -183,8 +149,7 @@ const DiaryList = ({ activeTab }) => {
       data: Object.keys(emotionCount).map((key) => ({ name: key, value: emotionCount[key] })),
       total: recentCount
     };
-  };
-  const chartInfo = getChartData();
+  }, [diaries]);
 
   // --- 기타 핸들러 ---
   const openModal = (diary, startEditing = false) => {
@@ -208,7 +173,7 @@ const DiaryList = ({ activeTab }) => {
           setDiaries(prev => prev.filter(diary => diary.id !== id));
           if (selectedDiary && selectedDiary.id === id) setSelectedDiary(null);
           Swal.fire('삭제됨', '', 'success');
-        } catch (error) {
+        } catch {
           Swal.fire('실패', '오류가 발생했습니다.', 'error');
         }
       }
@@ -231,29 +196,31 @@ const DiaryList = ({ activeTab }) => {
       setSelectedDiary(updatedDiary);
       setIsEditing(false);
       Swal.fire({ icon: 'success', title: '수정 완료!', toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
-    } catch (error) {
+    } catch {
       Swal.fire('수정 실패', '잠시 후 다시 시도해주세요.', 'error');
     } finally {
       setUpdating(false);
     }
   };
 
-  const getEmotionEmoji = (emotion) => {
-    if (!emotion) return "📅"; 
-    if (emotion.includes("행복") || emotion.includes("기쁨")) return "🥰";
-    if (emotion.includes("슬픔") || emotion.includes("우울")) return "😭";
-    if (emotion.includes("화") || emotion.includes("분노")) return "😡";
-    if (emotion.includes("불안") || emotion.includes("걱정")) return "😬";
-    if (emotion.includes("평온") || emotion.includes("보통")) return "🙂";
-    return "📝"; 
-  };
+  // 캘린더 타일 렌더링 최적화 (O(N) -> O(1) Lookup)
+  const diaryDateMap = useMemo(() => {
+    const map = new Map();
+    diaries.forEach(diary => {
+      const dateStr = new Date(diary.created_at).toDateString();
+      if (!map.has(dateStr)) {
+        map.set(dateStr, diary);
+      }
+    });
+    return map;
+  }, [diaries]);
 
-  const tileContent = ({ date, view }) => {
+  const tileContent = useCallback(({ date, view }) => {
     if (view === 'month') {
-      const diary = diaries.find(d => new Date(d.created_at).toDateString() === date.toDateString());
+      const diary = diaryDateMap.get(date.toDateString());
       if (diary) return <div className="flex flex-col items-center mt-1"><span className="text-xl">{getEmotionEmoji(diary.emotion)}</span></div>;
     }
-  };
+  }, [diaryDateMap]);
 
   return (
     <div className="w-full">
