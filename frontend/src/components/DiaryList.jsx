@@ -269,6 +269,7 @@ const DiaryList = ({ activeTab }) => {
           <div className="mb-6 relative">
             <input 
               type="text"
+              aria-label="일기 검색"
               placeholder="내용, 감정, 날짜로 검색해보세요..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -287,8 +288,11 @@ const DiaryList = ({ activeTab }) => {
           ) : (
             <div className="flex flex-col gap-4">
               {filteredDiaries.map((diary, index) => (
-                <div 
-                  key={diary.id} onClick={() => openModal(diary, false)} 
+                <article
+                  key={diary.id}
+                  onClick={() => openModal(diary, false)}
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openModal(diary, false); } }}
                   style={{ animationDelay: `${(index % 10) * 0.1}s` }} 
                   className="group w-full bg-white dark:bg-gray-800 p-5 rounded-xl shadow-md border border-gray-300 dark:border-gray-700 hover:shadow-lg hover:border-blue-400 dark:hover:border-blue-500 transition cursor-pointer animate-slide-up relative flex gap-5 h-40 overflow-hidden"
                 >
@@ -299,8 +303,8 @@ const DiaryList = ({ activeTab }) => {
                           {new Date(diary.created_at).toLocaleDateString()}
                         </span>
                         <div className="flex gap-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={(e) => { e.stopPropagation(); openModal(diary, true); }} className="text-gray-400 hover:text-blue-500 p-1"><FaEdit /></button>
-                          <button onClick={(e) => handleDelete(e, diary.id)} className="text-gray-400 hover:text-red-500 p-1"><FaTrashAlt /></button>
+                          <button aria-label="일기 수정" onClick={(e) => { e.stopPropagation(); openModal(diary, true); }} className="text-gray-400 hover:text-blue-500 p-1"><FaEdit /></button>
+                          <button aria-label="일기 삭제" onClick={(e) => handleDelete(e, diary.id)} className="text-gray-400 hover:text-red-500 p-1"><FaTrashAlt /></button>
                         </div>
                       </div>
                       <p className="text-gray-800 dark:text-gray-200 text-sm leading-relaxed line-clamp-3 font-medium">{diary.content}</p>
@@ -316,7 +320,7 @@ const DiaryList = ({ activeTab }) => {
                         <img src={diary.image.startsWith('http') ? diary.image : `http://127.0.0.1:8000${diary.image}`} alt="썸네일" className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
                     </div>
                   )}
-                </div>
+                </article>
               ))}
               
               {/* 무한 스크롤 트리거 요소 */}
@@ -386,9 +390,9 @@ const DiaryList = ({ activeTab }) => {
                   {updating ? <span className="text-sm font-bold">분석 중...</span> : <><FaSave size={16} /><span className="text-sm font-bold">저장</span></>}
                 </button>
               ) : (
-                <button onClick={() => setIsEditing(true)} className="text-gray-400 hover:text-blue-500 transition bg-gray-100 dark:bg-gray-700 rounded-full p-2"><FaEdit size={18} /></button>
+                <button aria-label="수정 모드" onClick={() => setIsEditing(true)} className="text-gray-400 hover:text-blue-500 transition bg-gray-100 dark:bg-gray-700 rounded-full p-2"><FaEdit size={18} /></button>
               )}
-              <button onClick={() => setSelectedDiary(null)} disabled={updating} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition bg-gray-100 dark:bg-gray-700 rounded-full p-2 disabled:opacity-50"><FaTimes size={18} /></button>
+              <button aria-label="닫기" onClick={() => setSelectedDiary(null)} disabled={updating} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition bg-gray-100 dark:bg-gray-700 rounded-full p-2 disabled:opacity-50"><FaTimes size={18} /></button>
             </div>
             <div className="text-center mb-6 mt-2">
               <span className="text-sm font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full">
