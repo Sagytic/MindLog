@@ -6,3 +6,14 @@ docs: 문서 수정
 style: 코드 포맷팅, 링팅, 세미콜론 누락, 콘솔로그 삭제, 코드 변경 X
 refractor: 코드 리팩토링
 chore: 빌드 업무 수정, 패키지 매니저 수정
+
+## Environment Setup
+
+The backend requires environment variables to be set.
+Copy `backend/.env.example` to `backend/.env` and fill in the values.
+
+```bash
+cd backend
+cp .env.example .env
+# Edit .env with your secrets
+```
