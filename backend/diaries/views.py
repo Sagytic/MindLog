@@ -1,7 +1,7 @@
 from rest_framework import viewsets, generics
 from rest_framework.permissions import IsAuthenticated
 from .models import Diary
-from .serializers import DiarySerializer
+from .serializers import DiarySerializer, DiarySimpleSerializer
 from .ai_utils import analyze_diary
 from django.contrib.auth.models import User
 from .serializers import UserSerializer
@@ -29,6 +29,12 @@ class DiaryViewSet(viewsets.ModelViewSet):
             self.pagination_class = None
             return super().list(request, *args, **kwargs)
         
+        # [추가] 캘린더/통계용 경량화 데이터 반환
+        if request.query_params.get('mode') == 'calendar':
+            self.pagination_class = None
+            self.serializer_class = DiarySimpleSerializer
+            return super().list(request, *args, **kwargs)
+
         # 아니면 기본 페이지네이션(10개씩) 적용
         return super().list(request, *args, **kwargs)
     
