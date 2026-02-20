@@ -1,6 +1,6 @@
 // frontend/src/components/DiaryList.jsx
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import api from '../api'; 
 import Swal from 'sweetalert2'; 
 import { FaTrashAlt, FaTimes, FaEdit, FaSave, FaSearch } from 'react-icons/fa'; 
@@ -31,51 +31,6 @@ const DiaryList = ({ activeTab }) => {
 
   const COLORS = ['#60A5FA', '#F87171', '#FBBF24', '#34D399', '#A78BFA', '#9CA3AF'];
 
-  // [1] 데이터 불러오기 함수
-  const fetchDiaries = useCallback(async (reset = false) => {
-    if (loading) return; 
-    
-    setLoading(true);
-    try {
-      if (activeTab === 'home') {
-        const currentPage = reset ? 1 : page; 
-        
-        // 검색어가 있으면 전체 로드 (임시)
-        let url = `/api/diaries/?page=${currentPage}`;
-        if (searchTerm) url = `/api/diaries/?all=true`; 
-
-        const response = await api.get(url);
-        
-        if (searchTerm) {
-              setDiaries(response.data); 
-              setHasMore(false);
-        } else {
-            const newData = response.data.results ? response.data.results : response.data;
-            const isLastPage = !response.data.next; 
-
-            if (reset) {
-                setDiaries(newData);
-            } else {
-                setDiaries(prev => [...prev, ...newData]); 
-            }
-
-            setHasMore(!isLastPage); 
-            if (!isLastPage) setPage(prev => prev + 1); 
-        }
-
-      } else {
-        // 캘린더/통계: 전체 데이터 로드
-        const response = await api.get('/api/diaries/?all=true');
-        setDiaries(response.data); 
-      }
-    } catch (error) {
-      console.error("데이터 로드 실패:", error);
-      setHasMore(false); 
-    } finally {
-      setLoading(false);
-    }
-  }, [activeTab, page, searchTerm]); 
-
   // [2] 초기화 및 리셋 로직
   useEffect(() => {
     setPage(1);
@@ -87,7 +42,8 @@ const DiaryList = ({ activeTab }) => {
             setLoading(true);
             let url = "";
             if (activeTab === 'home' && !searchTerm) url = `/api/diaries/?page=1`;
-            else url = `/api/diaries/?all=true`;
+            else if (activeTab === 'home' && searchTerm) url = `/api/diaries/?all=true`;
+            else url = `/api/diaries/?mode=calendar`; // 캘린더/통계: 경량화 데이터 로드
             
             const response = await api.get(url);
             const data = response.data.results ? response.data.results : response.data;
@@ -117,7 +73,7 @@ const DiaryList = ({ activeTab }) => {
                 setDiaries(prev => [...prev, ...newData]);
                 setHasMore(!!response.data.next);
                 if (response.data.next) setPage(prev => prev + 1);
-            } catch (e) { setHasMore(false); }
+            } catch { setHasMore(false); }
             finally { setLoading(false); }
         };
         loadMore();
@@ -187,10 +143,25 @@ const DiaryList = ({ activeTab }) => {
   const chartInfo = getChartData();
 
   // --- 기타 핸들러 ---
-  const openModal = (diary, startEditing = false) => {
-    setSelectedDiary(diary);
+  const openModal = async (diary, startEditing = false) => {
+    let fullDiary = diary;
+    // content가 없으면 상세 조회 (캘린더/통계 모드에서 클릭 시)
+    if (!diary.content && diary.id) {
+        try {
+            const response = await api.get(`/api/diaries/${diary.id}/`);
+            fullDiary = response.data;
+            // 로컬 상태 업데이트 (캐싱 효과)
+            setDiaries(prev => prev.map(d => d.id === fullDiary.id ? fullDiary : d));
+        } catch (error) {
+            console.error("Failed to fetch diary details:", error);
+            Swal.fire('오류', '일기 내용을 불러오는데 실패했습니다.', 'error');
+            return;
+        }
+    }
+
+    setSelectedDiary(fullDiary);
     setIsEditing(startEditing);
-    setEditContent(diary.content);
+    setEditContent(fullDiary.content || "");
     setEditImage(null);
     setUpdating(false);
   };
@@ -208,7 +179,7 @@ const DiaryList = ({ activeTab }) => {
           setDiaries(prev => prev.filter(diary => diary.id !== id));
           if (selectedDiary && selectedDiary.id === id) setSelectedDiary(null);
           Swal.fire('삭제됨', '', 'success');
-        } catch (error) {
+        } catch {
           Swal.fire('실패', '오류가 발생했습니다.', 'error');
         }
       }
@@ -231,7 +202,7 @@ const DiaryList = ({ activeTab }) => {
       setSelectedDiary(updatedDiary);
       setIsEditing(false);
       Swal.fire({ icon: 'success', title: '수정 완료!', toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
-    } catch (error) {
+    } catch {
       Swal.fire('수정 실패', '잠시 후 다시 시도해주세요.', 'error');
     } finally {
       setUpdating(false);
