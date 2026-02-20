@@ -51,10 +51,12 @@ const Login = ({ onLoginSuccess }) => {
         <h2 className="text-2xl font-bold mb-6 text-center text-gray-800 dark:text-white">로그인</h2>
         <form onSubmit={handleLogin} className="flex flex-col gap-4">
           <input
+            aria-label="아이디"
             type="text" placeholder="아이디" value={username} onChange={(e) => setUsername(e.target.value)} disabled={loading}
             className="p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
           />
           <input
+            aria-label="비밀번호"
             type="password" placeholder="비밀번호" value={password} onChange={(e) => setPassword(e.target.value)} disabled={loading}
             className="p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
           />
