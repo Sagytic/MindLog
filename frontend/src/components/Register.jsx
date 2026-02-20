@@ -58,6 +58,7 @@ const Register = ({ onRegisterSuccess, onSwitchToLogin }) => {
         <h2 className="text-2xl font-bold mb-6 text-center text-gray-800 dark:text-white">회원가입</h2>
         <form onSubmit={handleRegister} className="flex flex-col gap-4">
           <input
+            aria-label="아이디"
             type="text"
             placeholder="아이디"
             className="p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500
@@ -66,6 +67,7 @@ const Register = ({ onRegisterSuccess, onSwitchToLogin }) => {
             onChange={(e) => setUsername(e.target.value)}
           />
           <input
+            aria-label="비밀번호"
             type="password"
             placeholder="비밀번호"
             className="p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500
@@ -74,6 +76,7 @@ const Register = ({ onRegisterSuccess, onSwitchToLogin }) => {
             onChange={(e) => setPassword(e.target.value)}
           />
           <input
+            aria-label="비밀번호 확인"
             type="password"
             placeholder="비밀번호 확인"
             className="p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500
