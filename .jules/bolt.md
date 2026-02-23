@@ -1,0 +1,3 @@
+## 2025-01-29 - Search & Render Bottlenecks
+**Learning:** The application fetches ALL diary entries (`?all=true`) whenever a search term is present, relying on client-side filtering. This is a scalability bottleneck. Also, `react-calendar`'s `tileContent` prop is called for every visible date; performing O(N) lookups inside it leads to O(N*M) rendering complexity.
+**Action:** Implemented debouncing to mitigate the impact of the "fetch all" strategy. Optimized calendar rendering by pre-computing a date-keyed map (O(1) lookup). Future architectural change should move search filtering to the backend.
