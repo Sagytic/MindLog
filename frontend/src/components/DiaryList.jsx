@@ -1,6 +1,6 @@
 // frontend/src/components/DiaryList.jsx
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import api from '../api'; 
 import Swal from 'sweetalert2'; 
 import { FaTrashAlt, FaTimes, FaEdit, FaSave, FaSearch } from 'react-icons/fa'; 
@@ -64,8 +64,8 @@ const DiaryList = ({ activeTab }) => {
         }
 
       } else {
-        // 캘린더/통계: 전체 데이터 로드
-        const response = await api.get('/api/diaries/?all=true');
+        // 캘린더/통계: 전체 데이터 로드 (경량화)
+        const response = await api.get('/api/diaries/?mode=calendar');
         setDiaries(response.data); 
       }
     } catch (error) {
@@ -87,6 +87,7 @@ const DiaryList = ({ activeTab }) => {
             setLoading(true);
             let url = "";
             if (activeTab === 'home' && !searchTerm) url = `/api/diaries/?page=1`;
+            else if (activeTab === 'calendar' || activeTab === 'stats') url = `/api/diaries/?mode=calendar`;
             else url = `/api/diaries/?all=true`;
             
             const response = await api.get(url);
@@ -187,12 +188,31 @@ const DiaryList = ({ activeTab }) => {
   const chartInfo = getChartData();
 
   // --- 기타 핸들러 ---
-  const openModal = (diary, startEditing = false) => {
+  const openModal = async (diary, startEditing = false) => {
+    // 1. 먼저 가지고 있는 정보를 보여줌 (로딩 느낌 최소화)
     setSelectedDiary(diary);
     setIsEditing(startEditing);
-    setEditContent(diary.content);
+    setEditContent(diary.content || "");
     setEditImage(null);
     setUpdating(false);
+
+    // 2. content가 없으면 상세 조회 (캘린더 모드 등에서 진입 시)
+    if (diary.content === undefined) {
+        try {
+            // 상세 정보 로드
+            const response = await api.get(`/api/diaries/${diary.id}/`);
+            const fullDiary = response.data;
+
+            setSelectedDiary(fullDiary);
+            setEditContent(fullDiary.content);
+
+            // 리스트 상태도 업데이트하여 캐싱 효과 제공
+            setDiaries(prev => prev.map(d => d.id === fullDiary.id ? { ...d, ...fullDiary } : d));
+        } catch (error) {
+            console.error("상세 정보 로드 실패", error);
+            Swal.fire("오류", "일기 내용을 불러오지 못했습니다.", "error");
+        }
+    }
   };
 
   const handleDelete = (e, id) => {
@@ -248,9 +268,19 @@ const DiaryList = ({ activeTab }) => {
     return "📝"; 
   };
 
+  // O(1) 조회를 위한 날짜 맵 생성
+  const diaryDateMap = useMemo(() => {
+    const map = new Map();
+    diaries.forEach(d => {
+        const dateStr = new Date(d.created_at).toDateString();
+        map.set(dateStr, d);
+    });
+    return map;
+  }, [diaries]);
+
   const tileContent = ({ date, view }) => {
     if (view === 'month') {
-      const diary = diaries.find(d => new Date(d.created_at).toDateString() === date.toDateString());
+      const diary = diaryDateMap.get(date.toDateString());
       if (diary) return <div className="flex flex-col items-center mt-1"><span className="text-xl">{getEmotionEmoji(diary.emotion)}</span></div>;
     }
   };
@@ -335,7 +365,7 @@ const DiaryList = ({ activeTab }) => {
         <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 animate-fade-in">
            <Calendar className="w-full" locale="ko-KR" tileContent={tileContent}
              onClickDay={(date) => {
-               const diary = diaries.find(d => new Date(d.created_at).toDateString() === date.toDateString());
+               const diary = diaryDateMap.get(date.toDateString());
                if (diary) openModal(diary, false);
              }}
            />
