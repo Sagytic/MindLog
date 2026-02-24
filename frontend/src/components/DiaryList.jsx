@@ -1,6 +1,6 @@
 // frontend/src/components/DiaryList.jsx
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import api from '../api'; 
 import Swal from 'sweetalert2'; 
 import { FaTrashAlt, FaTimes, FaEdit, FaSave, FaSearch } from 'react-icons/fa'; 
@@ -31,50 +31,6 @@ const DiaryList = ({ activeTab }) => {
 
   const COLORS = ['#60A5FA', '#F87171', '#FBBF24', '#34D399', '#A78BFA', '#9CA3AF'];
 
-  // [1] 데이터 불러오기 함수
-  const fetchDiaries = useCallback(async (reset = false) => {
-    if (loading) return; 
-    
-    setLoading(true);
-    try {
-      if (activeTab === 'home') {
-        const currentPage = reset ? 1 : page; 
-        
-        // 검색어가 있으면 전체 로드 (임시)
-        let url = `/api/diaries/?page=${currentPage}`;
-        if (searchTerm) url = `/api/diaries/?all=true`; 
-
-        const response = await api.get(url);
-        
-        if (searchTerm) {
-              setDiaries(response.data); 
-              setHasMore(false);
-        } else {
-            const newData = response.data.results ? response.data.results : response.data;
-            const isLastPage = !response.data.next; 
-
-            if (reset) {
-                setDiaries(newData);
-            } else {
-                setDiaries(prev => [...prev, ...newData]); 
-            }
-
-            setHasMore(!isLastPage); 
-            if (!isLastPage) setPage(prev => prev + 1); 
-        }
-
-      } else {
-        // 캘린더/통계: 전체 데이터 로드
-        const response = await api.get('/api/diaries/?all=true');
-        setDiaries(response.data); 
-      }
-    } catch (error) {
-      console.error("데이터 로드 실패:", error);
-      setHasMore(false); 
-    } finally {
-      setLoading(false);
-    }
-  }, [activeTab, page, searchTerm]); 
 
   // [2] 초기화 및 리셋 로직
   useEffect(() => {
@@ -117,7 +73,7 @@ const DiaryList = ({ activeTab }) => {
                 setDiaries(prev => [...prev, ...newData]);
                 setHasMore(!!response.data.next);
                 if (response.data.next) setPage(prev => prev + 1);
-            } catch (e) { setHasMore(false); }
+            } catch { setHasMore(false); }
             finally { setLoading(false); }
         };
         loadMore();
@@ -208,7 +164,7 @@ const DiaryList = ({ activeTab }) => {
           setDiaries(prev => prev.filter(diary => diary.id !== id));
           if (selectedDiary && selectedDiary.id === id) setSelectedDiary(null);
           Swal.fire('삭제됨', '', 'success');
-        } catch (error) {
+        } catch {
           Swal.fire('실패', '오류가 발생했습니다.', 'error');
         }
       }
@@ -231,7 +187,7 @@ const DiaryList = ({ activeTab }) => {
       setSelectedDiary(updatedDiary);
       setIsEditing(false);
       Swal.fire({ icon: 'success', title: '수정 완료!', toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
-    } catch (error) {
+    } catch {
       Swal.fire('수정 실패', '잠시 후 다시 시도해주세요.', 'error');
     } finally {
       setUpdating(false);
@@ -269,6 +225,7 @@ const DiaryList = ({ activeTab }) => {
           <div className="mb-6 relative">
             <input 
               type="text"
+              aria-label="일기 검색"
               placeholder="내용, 감정, 날짜로 검색해보세요..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -288,9 +245,19 @@ const DiaryList = ({ activeTab }) => {
             <div className="flex flex-col gap-4">
               {filteredDiaries.map((diary, index) => (
                 <div 
-                  key={diary.id} onClick={() => openModal(diary, false)} 
+                  key={diary.id}
+                  onClick={() => openModal(diary, false)}
+                  role="article"
+                  tabIndex="0"
+                  aria-label={`${new Date(diary.created_at).toLocaleDateString()} 일기 상세 보기`}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      openModal(diary, false);
+                    }
+                  }}
                   style={{ animationDelay: `${(index % 10) * 0.1}s` }} 
-                  className="group w-full bg-white dark:bg-gray-800 p-5 rounded-xl shadow-md border border-gray-300 dark:border-gray-700 hover:shadow-lg hover:border-blue-400 dark:hover:border-blue-500 transition cursor-pointer animate-slide-up relative flex gap-5 h-40 overflow-hidden"
+                  className="group w-full bg-white dark:bg-gray-800 p-5 rounded-xl shadow-md border border-gray-300 dark:border-gray-700 hover:shadow-lg hover:border-blue-400 dark:hover:border-blue-500 transition cursor-pointer animate-slide-up relative flex gap-5 h-40 overflow-hidden focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <div className="flex-1 min-w-0 flex flex-col justify-between h-full">
                     <div>
@@ -298,9 +265,9 @@ const DiaryList = ({ activeTab }) => {
                         <span className="text-xs text-gray-400 dark:text-gray-500 font-bold tracking-wider uppercase">
                           {new Date(diary.created_at).toLocaleDateString()}
                         </span>
-                        <div className="flex gap-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={(e) => { e.stopPropagation(); openModal(diary, true); }} className="text-gray-400 hover:text-blue-500 p-1"><FaEdit /></button>
-                          <button onClick={(e) => handleDelete(e, diary.id)} className="text-gray-400 hover:text-red-500 p-1"><FaTrashAlt /></button>
+                        <div className="flex gap-2 z-10 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                          <button aria-label="수정" onClick={(e) => { e.stopPropagation(); openModal(diary, true); }} className="text-gray-400 hover:text-blue-500 p-1 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"><FaEdit /></button>
+                          <button aria-label="삭제" onClick={(e) => handleDelete(e, diary.id)} className="text-gray-400 hover:text-red-500 p-1 rounded focus:outline-none focus:ring-2 focus:ring-red-500"><FaTrashAlt /></button>
                         </div>
                       </div>
                       <p className="text-gray-800 dark:text-gray-200 text-sm leading-relaxed line-clamp-3 font-medium">{diary.content}</p>
@@ -386,9 +353,9 @@ const DiaryList = ({ activeTab }) => {
                   {updating ? <span className="text-sm font-bold">분석 중...</span> : <><FaSave size={16} /><span className="text-sm font-bold">저장</span></>}
                 </button>
               ) : (
-                <button onClick={() => setIsEditing(true)} className="text-gray-400 hover:text-blue-500 transition bg-gray-100 dark:bg-gray-700 rounded-full p-2"><FaEdit size={18} /></button>
+                <button aria-label="수정" onClick={() => setIsEditing(true)} className="text-gray-400 hover:text-blue-500 transition bg-gray-100 dark:bg-gray-700 rounded-full p-2"><FaEdit size={18} /></button>
               )}
-              <button onClick={() => setSelectedDiary(null)} disabled={updating} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition bg-gray-100 dark:bg-gray-700 rounded-full p-2 disabled:opacity-50"><FaTimes size={18} /></button>
+              <button aria-label="닫기" onClick={() => setSelectedDiary(null)} disabled={updating} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition bg-gray-100 dark:bg-gray-700 rounded-full p-2 disabled:opacity-50"><FaTimes size={18} /></button>
             </div>
             <div className="text-center mb-6 mt-2">
               <span className="text-sm font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full">
