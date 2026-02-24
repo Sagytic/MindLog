@@ -20,6 +20,15 @@ class DiarySerializer(serializers.ModelSerializer):
         # 사용자가 일기를 쓸 때(POST), 감정/조언/시간/삭제여부는 입력하지 않습니다. (시스템 or AI가 처리)
         read_only_fields = ['emotion', 'advice', 'created_at', 'updated_at', 'is_deleted']
 
+class DiarySimpleSerializer(serializers.ModelSerializer):
+    """
+    캘린더 및 통계용 경량화된 시리얼라이저.
+    필수 필드만 포함하여 데이터 전송량을 최소화합니다.
+    """
+    class Meta:
+        model = Diary
+        fields = ['id', 'created_at', 'emotion']
+
 # 회원가입용 시리얼라이저
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True) # 비밀번호는 응답에 포함되지 않게 설정
